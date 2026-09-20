@@ -1,9 +1,19 @@
 -- =========================================================
 -- Migration 001 — Initial schema for Avirat Jewelers
--- Safe to run multiple times: all DDL uses IF NOT EXISTS.
--- Run this against your Supabase project via the SQL editor
--- or `supabase db push`.
+-- Based on API Design Document v1.0
+-- Drops existing schema and recreates with correct structure
 -- =========================================================
+
+-- ── Drop existing tables (clean slate) ─────────────────────
+drop table if exists visits cascade;
+drop table if exists inquiries cascade;
+drop table if exists products cascade;
+drop table if exists categories cascade;
+
+-- ── Drop existing enums ───────────────────────────────────
+drop type if exists inquiry_status cascade;
+drop type if exists availability cascade;
+drop type if exists product_status cascade;
 
 -- ── Extensions ────────────────────────────────────────────
 create extension if not exists "uuid-ossp";
@@ -18,20 +28,16 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type inquiry_status as enum ('new', 'open', 'closed');
-exception when duplicate_object then null; end $$;
-
-do $$ begin
-  create type discount_type as enum ('percentage', 'flat');
+  create type inquiry_status as enum ('new', 'contacted', 'resolved');
 exception when duplicate_object then null; end $$;
 
 -- ── categories ────────────────────────────────────────────
 create table if not exists categories (
-  id          uuid        primary key default uuid_generate_v4(),
+  id          uuid        primary key default gen_random_uuid(),
   name        text        not null unique,
   slug        text        not null unique,
   icon_url    text,
-  icon_svg    text,                -- inline SVG string for the UI cards
+  icon_svg    text,
   sort_order  smallint    not null default 0,
   is_system   boolean     not null default false,
   created_at  timestamptz not null default now()
@@ -44,55 +50,16 @@ do $$ begin
     on categories for select using (true);
 exception when duplicate_object then null; end $$;
 
--- ── offers ────────────────────────────────────────────────
-create table if not exists offers (
-  id          uuid        primary key default uuid_generate_v4(),
-  label       text        not null,
-  description text,
-  is_active   boolean     not null default true,
-  start_date  date,
-  end_date    date,
-  created_at  timestamptz not null default now()
-);
-
-alter table offers enable row level security;
-
-do $$ begin
-  create policy "offers: public read active"
-    on offers for select using (is_active = true);
-exception when duplicate_object then null; end $$;
-
--- ── discounts ─────────────────────────────────────────────
-create table if not exists discounts (
-  id            uuid          primary key default uuid_generate_v4(),
-  offer_id      uuid          not null references offers(id) on delete cascade,
-  discount_type discount_type not null,
-  value         numeric(10,2) not null check (value > 0)
-);
-
-alter table discounts enable row level security;
-
-do $$ begin
-  create policy "discounts: public read"
-    on discounts for select using (true);
-exception when duplicate_object then null; end $$;
-
 -- ── products ──────────────────────────────────────────────
--- status enforces draft / published / archived at DB level.
--- image_urls stores Supabase Storage public URLs uploaded via
--- the admin /api/admin/products/upload endpoint.
 create table if not exists products (
-  id                  uuid           primary key default uuid_generate_v4(),
+  id                  uuid           primary key default gen_random_uuid(),
   name                text           not null,
   category_id         uuid           not null references categories(id),
-  description         text           not null default '',
+  description         text           not null,
   hallmark_certified  boolean        not null default false,
   availability        availability   not null default 'available',
-  price               numeric(12,2)  not null check (price >= 0),
-  offer_id            uuid           references offers(id) on delete set null,
-  -- draft     = hidden / work-in-progress
-  -- published = visible to public (RLS enforces this)
-  -- archived  = soft-deleted, hidden from all public queries
+  is_offer            boolean        not null default false,
+  offer_label         text,
   status              product_status not null default 'draft',
   image_urls          text[]         not null default '{}',
   created_at          timestamptz    not null default now(),
@@ -123,7 +90,7 @@ exception when duplicate_object then null; end $$;
 
 -- ── inquiries ─────────────────────────────────────────────
 create table if not exists inquiries (
-  id          uuid           primary key default uuid_generate_v4(),
+  id          uuid           primary key default gen_random_uuid(),
   name        text           not null,
   phone       text           not null,
   email       text,
@@ -140,11 +107,21 @@ do $$ begin
     on inquiries for insert with check (true);
 exception when duplicate_object then null; end $$;
 
+do $$ begin
+  create policy "inquiries: public select"
+    on inquiries for select using (true);
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create policy "inquiries: public update"
+    on inquiries for update using (true);
+exception when duplicate_object then null; end $$;
+
 -- ── visits ────────────────────────────────────────────────
 create table if not exists visits (
-  id         uuid        primary key default uuid_generate_v4(),
-  page       text        not null,
-  referrer   text,
+  id         uuid        primary key default gen_random_uuid(),
+  page_path  text        not null,
+  product_id uuid        references products(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -155,9 +132,19 @@ do $$ begin
     on visits for insert with check (true);
 exception when duplicate_object then null; end $$;
 
+do $$ begin
+  create policy "visits: public select"
+    on visits for select using (true);
+exception when duplicate_object then null; end $$;
+
 -- ── indexes ───────────────────────────────────────────────
 create index if not exists idx_products_status      on products(status);
 create index if not exists idx_products_category_id on products(category_id);
 create index if not exists idx_products_updated_at  on products(updated_at desc);
+create index if not exists idx_products_is_offer    on products(is_offer);
 create index if not exists idx_inquiries_status     on inquiries(status);
 create index if not exists idx_inquiries_created_at on inquiries(created_at desc);
+create index if not exists idx_inquiries_product_id on inquiries(product_id);
+create index if not exists idx_visits_page_path     on visits(page_path);
+create index if not exists idx_visits_product_id    on visits(product_id);
+create index if not exists idx_visits_created_at    on visits(created_at desc);

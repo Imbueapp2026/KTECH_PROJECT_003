@@ -43,6 +43,14 @@ export function getServiceClient(): SupabaseClient {
     return cachedService;
   } catch (error) {
     console.error("[supabase-admin] Service client creation failed:", error);
+    console.error("[supabase-admin] Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      env: {
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING',
+        serviceKey: process.env.SUPABASE_SECRET_KEY ? 'SET' : 'MISSING'
+      }
+    });
     throw new Error(`Failed to create Supabase service client: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

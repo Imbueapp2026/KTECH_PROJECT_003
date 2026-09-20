@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`${base} ${variants[variant]} ${sizes[size]} rounded-[var(--radius-md)] ${className}`}
+        className={`${base} ${variants[variant]} ${sizes[size]} rounded-[var(--radius-sm)] ${className}`}
         {...props}
       />
     );

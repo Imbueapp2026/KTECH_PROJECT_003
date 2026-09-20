@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { Product, Offer, Inquiry } from "@/lib/data/types";
 
-interface GoldPriceData {
+interface MetalPriceData {
   price_per_gram: number | null;
   updated_at: string | null;
   source: string | null;
@@ -35,10 +35,19 @@ export default function DashboardPage() {
     newInquiries: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [goldPrice, setGoldPrice] = useState<GoldPriceData | null>(null);
+  
+  // Gold price state
+  const [goldPrice, setGoldPrice] = useState<MetalPriceData | null>(null);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualPrice, setManualPrice] = useState("");
   const [loadingGoldPrice, setLoadingGoldPrice] = useState(true);
+
+  // Silver price state
+  const [silverPrice, setSilverPrice] = useState<MetalPriceData | null>(null);
+  const [showManualSilverInput, setShowManualSilverInput] = useState(false);
+  const [manualSilverPrice, setManualSilverPrice] = useState("");
+  const [loadingSilverPrice, setLoadingSilverPrice] = useState(true);
+
   const [missingDataProducts, setMissingDataProducts] = useState<MissingDataProduct[]>([]);
   const [loadingMissingData, setLoadingMissingData] = useState(true);
 
@@ -46,11 +55,16 @@ export default function DashboardPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [prodRes, offerRes, inqRes, goldRes, missingDataRes] = await Promise.all([
+        const [prodRes, offerRes, inqRes, goldRes, silverRes, missingDataRes] = await Promise.all([
           api.get<{ data: Product[] }>("/api/admin/products"),
           api.get<{ data: Offer[] }>("/api/admin/offers"),
           api.get<{ data: Inquiry[] }>("/api/admin/inquiries"),
-          api.get<GoldPriceData>("/api/admin/gold-price").catch(() => ({
+          api.get<MetalPriceData>("/api/admin/gold-price").catch(() => ({
+            price_per_gram: null,
+            updated_at: null,
+            source: null
+          })),
+          api.get<MetalPriceData>("/api/admin/silver-price").catch(() => ({
             price_per_gram: null,
             updated_at: null,
             source: null
@@ -65,6 +79,7 @@ export default function DashboardPage() {
           newInquiries: inqRes.data.filter((i) => i.status === "new").length,
         });
         setGoldPrice(goldRes);
+        setSilverPrice(silverRes);
         setMissingDataProducts(missingDataRes.products || []);
       } catch (err) {
         if (!cancelled) {
@@ -73,6 +88,7 @@ export default function DashboardPage() {
       } finally {
         if (!cancelled) {
           setLoadingGoldPrice(false);
+          setLoadingSilverPrice(false);
           setLoadingMissingData(false);
         }
       }
@@ -106,14 +122,11 @@ export default function DashboardPage() {
     }
 
     try {
-      const result = await api.post<GoldPriceData>("/api/admin/gold-price", {
+      const result = await api.post<MetalPriceData>("/api/admin/gold-price", {
         price_per_gram: price,
         source: "manual"
       });
       
-      console.log("Gold price update result:", result);
-      
-      // Check for significant price decrease
       if (result.price_decrease_percent && result.price_decrease_percent > 20) {
         setError(`Warning: Gold price decreased by ${result.price_decrease_percent.toFixed(1)}% from ₹${result.previous_price} to ₹${result.price_per_gram}/gram. Product prices have been updated.`);
       } else if (result.recalculation_failed) {
@@ -121,16 +134,15 @@ export default function DashboardPage() {
       } else {
         setError(null);
         if (result.skipped_count && result.skipped_count > 0) {
-          setError(`Price recalculation completed. Updated ${result.updated_count} products. ${result.skipped_count} products were skipped due to missing data.`);
-          // Refresh missing data list
+          setError(`Gold price recalculation completed. Updated ${result.updated_count} products. ${result.skipped_count} products were skipped due to missing data.`);
           const missingDataRes = await api.get<{ count: number; products: MissingDataProduct[] }>("/api/admin/products/missing-data");
           setMissingDataProducts(missingDataRes.products || []);
         } else {
-          setError(`Price recalculation completed. Updated ${result.updated_count} products.`);
+          setError(`Gold price recalculation completed. Updated ${result.updated_count} products.`);
         }
       }
       
-      const updated = await api.get<GoldPriceData>("/api/admin/gold-price");
+      const updated = await api.get<MetalPriceData>("/api/admin/gold-price");
       setGoldPrice(updated);
       setShowManualInput(false);
       setManualPrice("");
@@ -142,7 +154,7 @@ export default function DashboardPage() {
   const handleFetchExternal = async () => {
     try {
       setLoadingGoldPrice(true);
-      const updated = await api.post<GoldPriceData>("/api/admin/gold-price/fetch-external");
+      const updated = await api.post<MetalPriceData>("/api/admin/gold-price/fetch-external");
       
       if (updated.recalculation_failed) {
         setError(`Gold price updated but price recalculation failed: ${updated.recalculation_error || 'Unknown error'}`);
@@ -150,7 +162,6 @@ export default function DashboardPage() {
         setError(null);
         if (updated.skipped_count && updated.skipped_count > 0) {
           setError(`Gold price updated. ${updated.skipped_count} products were skipped due to missing data.`);
-          // Refresh missing data list
           const missingDataRes = await api.get<{ count: number; products: MissingDataProduct[] }>("/api/admin/products/missing-data");
           setMissingDataProducts(missingDataRes.products || []);
         }
@@ -161,6 +172,67 @@ export default function DashboardPage() {
       setError(err instanceof ApiError ? err.message : "Failed to fetch gold price");
     } finally {
       setLoadingGoldPrice(false);
+    }
+  };
+
+  const handleManualSilverPriceSubmit = async () => {
+    const price = parseFloat(manualSilverPrice);
+    if (isNaN(price) || price <= 0) {
+      setError("Please enter a valid silver price");
+      return;
+    }
+
+    try {
+      const result = await api.post<MetalPriceData>("/api/admin/silver-price", {
+        price_per_gram: price,
+        source: "manual"
+      });
+      
+      if (result.price_decrease_percent && result.price_decrease_percent > 20) {
+        setError(`Warning: Silver price decreased by ${result.price_decrease_percent.toFixed(1)}% from ₹${result.previous_price} to ₹${result.price_per_gram}/gram. Product prices have been updated.`);
+      } else if (result.recalculation_failed) {
+        setError(`Silver price updated but price recalculation failed: ${result.recalculation_error || 'Unknown error'}`);
+      } else {
+        setError(null);
+        if (result.skipped_count && result.skipped_count > 0) {
+          setError(`Silver price recalculation completed. Updated ${result.updated_count} products. ${result.skipped_count} products were skipped due to missing data.`);
+          const missingDataRes = await api.get<{ count: number; products: MissingDataProduct[] }>("/api/admin/products/missing-data");
+          setMissingDataProducts(missingDataRes.products || []);
+        } else {
+          setError(`Silver price recalculation completed. Updated ${result.updated_count} products.`);
+        }
+      }
+      
+      const updated = await api.get<MetalPriceData>("/api/admin/silver-price");
+      setSilverPrice(updated);
+      setShowManualSilverInput(false);
+      setManualSilverPrice("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update silver price");
+    }
+  };
+
+  const handleFetchExternalSilver = async () => {
+    try {
+      setLoadingSilverPrice(true);
+      const updated = await api.post<MetalPriceData>("/api/admin/silver-price/fetch-external");
+      
+      if (updated.recalculation_failed) {
+        setError(`Silver price updated but price recalculation failed: ${updated.recalculation_error || 'Unknown error'}`);
+      } else {
+        setError(null);
+        if (updated.skipped_count && updated.skipped_count > 0) {
+          setError(`Silver price updated. ${updated.skipped_count} products were skipped due to missing data.`);
+          const missingDataRes = await api.get<{ count: number; products: MissingDataProduct[] }>("/api/admin/products/missing-data");
+          setMissingDataProducts(missingDataRes.products || []);
+        }
+      }
+      
+      setSilverPrice(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to fetch silver price");
+    } finally {
+      setLoadingSilverPrice(false);
     }
   };
 
@@ -189,7 +261,7 @@ export default function DashboardPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <p className="text-sm font-semibold text-[var(--color-secondary)] mb-2">
-                {missingDataProducts.length} product{missingDataProducts.length !== 1 ? 's' : ''} missing gold pricing data
+                {missingDataProducts.length} product{missingDataProducts.length !== 1 ? 's' : ''} missing gold/silver pricing data
               </p>
               <p className="text-xs text-[var(--color-ink)] mb-3">
                 These products cannot be repriced automatically. Please fill in the missing fields:
@@ -221,65 +293,129 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Gold Price Section */}
-      <div className="bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-[var(--color-ink)]">Live Gold Price</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={handleFetchExternal}
-              disabled={loadingGoldPrice}
-              className="inline-flex items-center justify-center h-8 px-3 rounded-[var(--radius-sm)] text-xs font-medium bg-[var(--color-quaternary)] text-[var(--color-primary)] hover:opacity-90 transition-opacity focus-ring disabled:opacity-50"
-            >
-              {loadingGoldPrice ? "Fetching..." : "Fetch Live Price"}
-            </button>
-            <button
-              onClick={() => setShowManualInput(!showManualInput)}
-              className="inline-flex items-center justify-center h-8 px-3 rounded-[var(--radius-sm)] text-xs font-medium bg-[var(--color-primary)] text-[var(--color-ink)] border border-[var(--color-tertiary-soft)] hover:bg-[var(--color-surface-muted)] hover:border-[var(--color-tertiary)] focus-ring"
-            >
-              {showManualInput ? "Cancel" : "Manual Override"}
-            </button>
+      {/* Metal Prices Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Gold Price Section */}
+        <div className="bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-[var(--color-ink)]">Live Gold Price</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={handleFetchExternal}
+                disabled={loadingGoldPrice}
+                className="inline-flex items-center justify-center h-8 px-3 rounded-[var(--radius-sm)] text-xs font-medium bg-[var(--color-quaternary)] text-[var(--color-primary)] hover:opacity-90 transition-opacity focus-ring disabled:opacity-50"
+              >
+                {loadingGoldPrice ? "Fetching..." : "Fetch Live Price"}
+              </button>
+              <button
+                onClick={() => setShowManualInput(!showManualInput)}
+                className="inline-flex items-center justify-center h-8 px-3 rounded-[var(--radius-sm)] text-xs font-medium bg-[var(--color-primary)] text-[var(--color-ink)] border border-[var(--color-tertiary-soft)] hover:bg-[var(--color-surface-muted)] hover:border-[var(--color-tertiary)] focus-ring"
+              >
+                {showManualInput ? "Cancel" : "Manual Override"}
+              </button>
+            </div>
           </div>
+
+          {showManualInput && (
+            <div className="flex gap-2 mb-4">
+              <input
+                type="number"
+                value={manualPrice}
+                onChange={(e) => setManualPrice(e.target.value)}
+                placeholder="Enter gold price per gram (₹)"
+                className="flex-1 h-10 px-3 rounded-[var(--radius-sm)] text-sm bg-[var(--color-surface-muted)] border border-[var(--color-tertiary-soft)] focus:outline-none focus:border-[var(--color-quaternary)]"
+              />
+              <button
+                onClick={handleManualPriceSubmit}
+                className="inline-flex items-center justify-center h-10 px-4 rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--color-quaternary)] text-[var(--color-primary)] hover:opacity-90 transition-opacity focus-ring"
+              >
+                Set Price
+              </button>
+            </div>
+          )}
+
+          {loadingGoldPrice && goldPrice === null ? (
+            <Skeleton className="h-12" />
+          ) : goldPrice && goldPrice.price_per_gram ? (
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-3xl font-semibold text-[var(--color-ink)]">
+                  ₹{goldPrice.price_per_gram.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-[var(--color-tertiary)] mt-1">
+                  per gram • updated {formatTimeAgo(goldPrice.updated_at)}
+                  {goldPrice.fallback && " (cached)"}
+                </p>
+              </div>
+              <Badge tone={goldPrice.source === 'api' ? 'success' : 'neutral'}>
+                {goldPrice.source === 'api' ? 'Live' : 'Manual'}
+              </Badge>
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--color-tertiary)]">No gold price set. Click "Fetch Live Price" or use manual override.</p>
+          )}
         </div>
 
-        {showManualInput && (
-          <div className="flex gap-2 mb-4">
-            <input
-              type="number"
-              value={manualPrice}
-              onChange={(e) => setManualPrice(e.target.value)}
-              placeholder="Enter price per gram (₹)"
-              className="flex-1 h-10 px-3 rounded-[var(--radius-sm)] text-sm bg-[var(--color-surface-muted)] border border-[var(--color-tertiary-soft)] focus:outline-none focus:border-[var(--color-quaternary)]"
-            />
-            <button
-              onClick={handleManualPriceSubmit}
-              className="inline-flex items-center justify-center h-10 px-4 rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--color-quaternary)] text-[var(--color-primary)] hover:opacity-90 transition-opacity focus-ring"
-            >
-              Set Price
-            </button>
-          </div>
-        )}
-
-        {loadingGoldPrice && goldPrice === null ? (
-          <Skeleton className="h-12" />
-        ) : goldPrice && goldPrice.price_per_gram ? (
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <p className="text-3xl font-semibold text-[var(--color-ink)]">
-                ₹{goldPrice.price_per_gram.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-xs text-[var(--color-tertiary)] mt-1">
-                per gram • updated {formatTimeAgo(goldPrice.updated_at)}
-                {goldPrice.fallback && " (cached)"}
-              </p>
+        {/* Silver Price Section */}
+        <div className="bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-[var(--color-ink)]">Live Silver Price</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={handleFetchExternalSilver}
+                disabled={loadingSilverPrice}
+                className="inline-flex items-center justify-center h-8 px-3 rounded-[var(--radius-sm)] text-xs font-medium bg-[var(--color-quaternary)] text-[var(--color-primary)] hover:opacity-90 transition-opacity focus-ring disabled:opacity-50"
+              >
+                {loadingSilverPrice ? "Fetching..." : "Fetch Live Price"}
+              </button>
+              <button
+                onClick={() => setShowManualSilverInput(!showManualSilverInput)}
+                className="inline-flex items-center justify-center h-8 px-3 rounded-[var(--radius-sm)] text-xs font-medium bg-[var(--color-primary)] text-[var(--color-ink)] border border-[var(--color-tertiary-soft)] hover:bg-[var(--color-surface-muted)] hover:border-[var(--color-tertiary)] focus-ring"
+              >
+                {showManualSilverInput ? "Cancel" : "Manual Override"}
+              </button>
             </div>
-            <Badge tone={goldPrice.source === 'api' ? 'success' : 'neutral'}>
-              {goldPrice.source === 'api' ? 'Live' : 'Manual'}
-            </Badge>
           </div>
-        ) : (
-          <p className="text-sm text-[var(--color-tertiary)]">No gold price set. Click "Fetch Live Price" or use manual override.</p>
-        )}
+
+          {showManualSilverInput && (
+            <div className="flex gap-2 mb-4">
+              <input
+                type="number"
+                value={manualSilverPrice}
+                onChange={(e) => setManualSilverPrice(e.target.value)}
+                placeholder="Enter silver price per gram (₹)"
+                className="flex-1 h-10 px-3 rounded-[var(--radius-sm)] text-sm bg-[var(--color-surface-muted)] border border-[var(--color-tertiary-soft)] focus:outline-none focus:border-[var(--color-quaternary)]"
+              />
+              <button
+                onClick={handleManualSilverPriceSubmit}
+                className="inline-flex items-center justify-center h-10 px-4 rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--color-quaternary)] text-[var(--color-primary)] hover:opacity-90 transition-opacity focus-ring"
+              >
+                Set Price
+              </button>
+            </div>
+          )}
+
+          {loadingSilverPrice && silverPrice === null ? (
+            <Skeleton className="h-12" />
+          ) : silverPrice && silverPrice.price_per_gram ? (
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-3xl font-semibold text-[var(--color-ink)]">
+                  ₹{silverPrice.price_per_gram.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-[var(--color-tertiary)] mt-1">
+                  per gram • updated {formatTimeAgo(silverPrice.updated_at)}
+                  {silverPrice.fallback && " (cached)"}
+                </p>
+              </div>
+              <Badge tone={silverPrice.source === 'api' ? 'success' : 'neutral'}>
+                {silverPrice.source === 'api' ? 'Live' : 'Manual'}
+              </Badge>
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--color-tertiary)]">No silver price set. Click "Fetch Live Price" or use manual override.</p>
+          )}
+        </div>
       </div>
 
       {stats === null ? (

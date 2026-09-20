@@ -25,19 +25,23 @@ export default function CategoryDetailPage() {
     async function load() {
       try {
         const [cat, prod, off] = await Promise.all([
-          api.get<{ data: Category }>(`/api/admin/categories/${id}`),
-          api.get<{ data: Product[] }>(`/api/admin/products?category_id=${id}`),
-          api.get<{ data: OfferWithDiscounts[] }>("/api/admin/offers"),
+          api.get<Category>(`/api/admin/categories/${id}`),
+          api.get<Product[]>(`/api/admin/products?category_id=${id}`),
+          api.get<OfferWithDiscounts[]>("/api/admin/offers"),
         ]);
         if (cancelled) return;
-        setCategory(cat.data);
+        const categoryData = (Array.isArray(cat) ? cat[0] : (cat as unknown as { data?: Category })?.data || cat) as Category;
+        const productsData = (Array.isArray(prod) ? prod : (prod as unknown as { data?: Product[] })?.data || prod) as Product[];
+        const offersData = (Array.isArray(off) ? off : (off as unknown as { data?: OfferWithDiscounts[] })?.data || off) as OfferWithDiscounts[];
+        
+        setCategory(categoryData);
         const offerById = new Map(
-          off.data.map((o) => [o.id, { ...o, discount: o.discounts?.[0] ?? null }]),
+          offersData.map((o: OfferWithDiscounts) => [o.id, { ...o, discount: o.discounts?.[0] ?? null }]),
         );
         setProducts(
-          prod.data.map((row) => ({
+          productsData.map((row: Product) => ({
             ...row,
-            category: cat.data,
+            category: categoryData,
             offer: row.offer_id ? (offerById.get(row.offer_id) ?? null) : null,
           })),
         );

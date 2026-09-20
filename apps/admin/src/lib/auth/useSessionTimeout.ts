@@ -13,7 +13,6 @@ export function useSessionTimeout(signOut: () => Promise<void>) {
   useEffect(() => {
     let lastActivity = Date.now();
     let warningShown = false;
-    let timeoutId: NodeJS.Timeout | null = null;
     let checkId: NodeJS.Timeout | null = null;
 
     const resetActivity = () => {
@@ -53,7 +52,6 @@ export function useSessionTimeout(signOut: () => Promise<void>) {
       window.removeEventListener("click", resetActivity);
       window.removeEventListener("scroll", resetActivity);
       if (checkId) clearInterval(checkId);
-      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [signOut]);
 }

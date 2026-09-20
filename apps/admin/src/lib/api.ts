@@ -38,26 +38,73 @@ async function request<T>(
     cache: 'no-store',
     next: { revalidate: 0 }
   });
+  
+  // Track if we had a token to distinguish between "no auth" vs "expired auth"
+  const hadToken = !!token;
   const ct = res.headers.get("content-type") ?? "";
-  const body = ct.includes("application/json")
-    ? await res.json().catch(() => null)
-    : await res.text();
+  
+  let body: unknown;
+  try {
+    body = ct.includes("application/json")
+      ? await res.json()
+      : await res.text();
+  } catch (error) {
+    body = null;
+  }
+
+  // Handle both old and new response formats
+  let responseData = body;
+  if (body && typeof body === "object") {
+    // New standardized format: { data: T, timestamp: string }
+    if ("data" in body && "timestamp" in body) {
+      responseData = (body as { data: unknown }).data;
+    }
+    // Old format with pagination: { data: T, pagination: {...} }
+    else if ("data" in body && "pagination" in body) {
+      // Return the full object to preserve pagination data
+      responseData = body;
+    }
+    // Old format without pagination: { data: T }
+    else if ("data" in body) {
+      responseData = (body as { data: unknown }).data;
+    }
+  }
 
   if (!res.ok) {
-    const message =
-      body && typeof body === "object" && "message" in body
-        ? String((body as { message: unknown }).message)
-        : res.statusText;
+    // Handle both old and new error response formats
+    let message = res.statusText;
+    
+    if (body && typeof body === "object") {
+      // New standardized error format
+      if ("error" in body) {
+        message = String((body as { error: unknown }).error);
+      }
+      // Old format (fallback)
+      else if ("message" in body) {
+        message = String((body as { message: unknown }).message);
+      }
+    }
+
+    // ADDED — temporary debug log so we can see the real backend error.
+    // Remove this once the 500 is diagnosed and fixed.
+    console.error("[DEBUG products 500]", {
+      path,
+      status: res.status,
+      message,
+      body,
+    });
+
     if (res.status === 401) {
-      // Token is invalid/expired — redirect to login
-      if (typeof window !== "undefined") {
+      // Token is invalid/expired — redirect to login only if we had a token
+      // If we never had a token, don't redirect - just throw the error
+      if (typeof window !== "undefined" && hadToken) {
         window.location.href = "/login?expired=1";
       }
       throw new ApiError(401, "Session expired. Please sign in again.", body);
     }
     throw new ApiError(res.status, message, body);
   }
-  return body as T;
+  return responseData as T;
 }
 
 export const api = {

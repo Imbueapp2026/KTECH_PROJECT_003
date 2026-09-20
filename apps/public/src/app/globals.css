@@ -1,26 +1,119 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Design tokens - Colors */
+  --color-white: #FFFFFF;
+  --color-dusty-rose: #C98A96;
+  --color-charcoal: #6B6560;
+  --color-gold: #C9A66B;
+  --color-surface-warm: #FAF8F5;
+  
+  /* Radius scale */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  
+  /* Spacing scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --space-4xl: 6rem;
+  --space-5xl: 8rem;
+  
+  --background: #FFFFFF;
+  --foreground: #6B6560;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-dusty-rose: #C98A96;
+  --color-charcoal: #6B6560;
+  --color-gold: #C9A66B;
   --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-playfair);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Gold thread trace animation - signature motion */
+.gold-thread-trace {
+  position: relative;
+  overflow: hidden;
+}
+
+.gold-thread-trace::before,
+.gold-thread-trace::after {
+  content: '';
+  position: absolute;
+  background: var(--color-gold);
+  transition: width 0.4s ease-out, height 0.4s ease-out;
+  width: 0;
+  height: 2px;
+}
+
+.gold-thread-trace::before {
+  top: 0;
+  left: 0;
+  transition-delay: 0s;
+}
+
+.gold-thread-trace::after {
+  bottom: 0;
+  right: 0;
+  transition-delay: 0.1s;
+}
+
+.gold-thread-trace:hover::before {
+  width: 100%;
+}
+
+.gold-thread-trace:hover::after {
+  width: 100%;
+}
+
+/* Vertical gold thread for L-shaped border */
+.gold-thread-trace-vertical::before {
+  height: 100%;
+  width: 2px;
+  transition: height 0.4s ease-out;
+}
+
+.gold-thread-trace-vertical::after {
+  height: 100%;
+  width: 2px;
+  transition: height 0.4s ease-out;
+  transition-delay: 0.1s;
+}
+
+.gold-thread-trace-vertical:hover::before {
+  height: 100%;
+}
+
+.gold-thread-trace-vertical:hover::after {
+  height: 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }

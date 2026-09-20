@@ -1,4 +1,6 @@
 /**
+ * FILE PATH: src/app/api/admin/products/[id]/route.ts   (the [id] folder)
+ *
  * GET    /api/admin/products/[id]   — single product with category + offer join
  * PATCH  /api/admin/products/[id]   — partial update
  * DELETE /api/admin/products/[id]   — soft delete (status='archived')
@@ -17,7 +19,7 @@ import {
   asString,
   asUuid,
 } from "@/lib/http";
-import { calculateGoldPrice } from "@/lib/pricing";
+import { calculateMetalPrice } from "@/lib/pricing";
 import type { Availability, ProductStatus } from "@/lib/data/types";
 
 const AVAILABILITY = ["available", "made_to_order", "sold"] as const;
@@ -36,7 +38,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, name, category_id, description, hallmark_certified, availability, price, offer_id, status, image_urls, created_at, updated_at, purity_carats, weight_grams, making_charge_percent, making_charge_flat, making_charge_type, price_auto_calculated, certifications, gold_price_used, category:categories(id, name, slug, icon_svg)",
+      "id, name, category_id, description, hallmark_certified, availability, price, offer_id, status, image_urls, created_at, updated_at, purity_carats, weight_grams, net_weight_grams, making_charge_percent, making_charge_flat, making_charge_type, price_auto_calculated, certifications, gold_price_used, category:categories(id, name, slug, icon_svg)",
     )
     .eq("id", id)
     .single();
@@ -60,24 +62,29 @@ interface ProductPatch {
   // Gold pricing fields
   purity_carats?: unknown;
   weight_grams?: unknown;
+  net_weight_grams?: unknown;
   making_charge_percent?: unknown;
   making_charge_flat?: unknown;
   making_charge_type?: unknown;
   price_auto_calculated?: unknown;
   certifications?: unknown;
   gold_price_used?: unknown;
+  material_type?: unknown;
+  gst_percent?: unknown;
+  festival_id?: unknown;
 }
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await requireAdmin(req))) return unauthorized();
-  const { id } = await params;
-  if (!asUuid(id)) return badRequest("invalid id");
-  const body = (await parseJson<ProductPatch>(req)) ?? {};
-  
-  console.log("PATCH product request:", { id, body });
+  try {
+    if (!(await requireAdmin(req))) return unauthorized();
+    const { id } = await params;
+    if (!asUuid(id)) return badRequest("invalid id");
+    const body = (await parseJson<ProductPatch>(req)) ?? {};
+    
+    console.log('[API] PATCH /api/admin/products/[id] - Request:', { id, body });
 
   const patch: Record<string, unknown> = {};
   if (body.name !== undefined) {
@@ -105,9 +112,17 @@ export async function PATCH(
     if (!v) return badRequest("availability invalid");
     patch.availability = v;
   }
-  // Price is no longer directly settable - it's always calculated server-side
+  const directPrice = body.price === undefined || body.price === null || body.price === ""
+    ? null
+    : asNumber(body.price);
   if (body.price !== undefined) {
-    // Ignore direct price updates - price is always calculated from gold pricing fields
+    if (body.price !== null && body.price !== "" && directPrice == null) return badRequest("price must be a valid number");
+    if (directPrice != null && directPrice <= 0) return badRequest("price must be positive");
+    if (directPrice != null) {
+      patch.price = directPrice;
+      patch.price_auto_calculated = false;
+      patch.gold_price_used = null;
+    }
   }
   if (body.offer_id !== undefined) {
     patch.offer_id = body.offer_id == null ? null : asUuid(body.offer_id);
@@ -130,17 +145,29 @@ export async function PATCH(
     let v: string | undefined;
     if (typeof body.purity_carats === 'number') {
       v = body.purity_carats.toString();
+    } else if (typeof body.purity_carats === 'string') {
+      v = body.purity_carats;
     } else {
       const enumResult = asEnum(body.purity_carats, PURITY_CARATS);
       v = enumResult || undefined;
     }
-    if (!v || !PURITY_CARATS.includes(v as any)) return badRequest("purity_carats invalid");
-    patch.purity_carats = parseInt(v, 10);
+    // Allow null for silver, otherwise validate
+    if (v !== null && v !== undefined && !PURITY_CARATS.includes(v as (typeof PURITY_CARATS)[number])) {
+      return badRequest("purity_carats invalid");
+    }
+    patch.purity_carats = v ? parseInt(v, 10) : null;
   }
   if (body.weight_grams !== undefined) {
     const v = asNumber(body.weight_grams);
     if (v != null && v <= 0) return badRequest("weight_grams must be positive");
     patch.weight_grams = v;
+  }
+  if (body.net_weight_grams !== undefined) {
+    const v = body.net_weight_grams !== null && body.net_weight_grams !== ""
+      ? asNumber(body.net_weight_grams)
+      : null;
+    if (v != null && v <= 0) return badRequest("net_weight_grams must be positive");
+    patch.net_weight_grams = v;
   }
   if (body.making_charge_percent !== undefined) {
     const v = asNumber(body.making_charge_percent);
@@ -162,14 +189,28 @@ export async function PATCH(
     // Ignore this field - it's always true
   }
   if (body.certifications !== undefined) {
-    const v = asString(body.certifications, 500);
-    patch.certifications = v;
+    patch.certifications = body.certifications
+      ? String(body.certifications).split(",").map((c) => c.trim()).filter(Boolean)
+      : null;
   }
+  // gold_price_used is optional - backend will fetch current price from database
   if (body.gold_price_used !== undefined) {
     const v = asNumber(body.gold_price_used);
-    if (v == null) return badRequest("gold_price_used must be a number");
     if (v !== null && v <= 0) return badRequest("gold_price_used must be positive");
     patch.gold_price_used = v;
+  }
+  if (body.material_type !== undefined) {
+    const v = asEnum(body.material_type, ["gold", "silver"]);
+    if (!v) return badRequest("material_type invalid");
+    patch.material_type = v;
+  }
+  if (body.gst_percent !== undefined) {
+    const v = asNumber(body.gst_percent);
+    if (v != null && (v < 0 || v > 100)) return badRequest("gst_percent must be between 0 and 100");
+    patch.gst_percent = v;
+  }
+  if (body.festival_id !== undefined) {
+    patch.festival_id = body.festival_id == null ? null : asUuid(body.festival_id);
   }
   
   console.log("Patch object:", patch);
@@ -178,39 +219,68 @@ export async function PATCH(
   const supabase = getServiceClient();
   const { data: currentProduct } = await supabase
     .from("products")
-    .select("purity_carats, weight_grams, making_charge_percent, making_charge_flat, making_charge_type, gold_price_used")
+    .select("price, price_auto_calculated, purity_carats, weight_grams, making_charge_percent, making_charge_flat, making_charge_type, gold_price_used, material_type, gst_percent")
     .eq("id", id)
     .single();
   
   if (!currentProduct) return notFound();
   
   // Always recalculate price if product has required gold pricing fields
+  const materialType = (patch.material_type ?? currentProduct.material_type) as "gold" | "silver" | null;
   const purity = (patch.purity_carats ?? currentProduct.purity_carats) as 24 | 22 | 18 | 14 | 9 | null;
   const weight = patch.weight_grams ?? currentProduct.weight_grams;
   const makingType = (patch.making_charge_type ?? currentProduct.making_charge_type) as "percent" | "flat" | null;
   const makingPercent = patch.making_charge_percent ?? currentProduct.making_charge_percent;
   const makingFlat = patch.making_charge_flat ?? currentProduct.making_charge_flat;
+  const gstPercent = patch.gst_percent ?? currentProduct.gst_percent ?? 5;
   
-  // Fetch current gold price from database
-  const { data: goldPriceData } = await supabase
-    .from("gold_prices")
-    .select("price_per_gram")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Fetch current gold and silver prices from database concurrently
+  const [goldPriceRes, silverPriceRes] = await Promise.all([
+    supabase
+      .from("gold_prices")
+      .select("price_per_gram")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("silver_prices")
+      .select("price_per_gram")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  ]);
   
-  const currentGoldPrice = goldPriceData?.price_per_gram;
+  if (goldPriceRes.error) {
+    console.error('[API] Failed to fetch gold price for update:', goldPriceRes.error);
+    if (goldPriceRes.error.code === '42P01') {
+      return badRequest('Gold prices table does not exist. Please run database migrations.');
+    }
+    return serverError('Failed to fetch current gold price from database');
+  }
+  
+  if (silverPriceRes.error) {
+    console.error('[API] Failed to fetch silver price for update:', silverPriceRes.error);
+    if (silverPriceRes.error.code === '42P01') {
+      return badRequest('Silver prices table does not exist. Please run database migrations.');
+    }
+    return serverError('Failed to fetch current silver price from database');
+  }
+  
+  const currentGoldPrice = goldPriceRes.data?.price_per_gram;
+  const currentSilverPrice = silverPriceRes.data?.price_per_gram;
+  
+  const usedMetalPrice = materialType === 'silver' ? currentSilverPrice : currentGoldPrice;
   
   // Only recalculate if all required fields are present
-  if (purity && weight && makingType && currentGoldPrice) {
+  if (directPrice == null && currentProduct.price_auto_calculated !== false && weight && makingType && usedMetalPrice) {
     const makingCharge = makingType === 'percent' ? makingPercent : makingFlat;
     
     // Validate required fields
     if (weight <= 0) {
       return badRequest("weight_grams must be positive");
     }
-    if (currentGoldPrice <= 0) {
-      return badRequest("gold_price_used must be positive");
+    if (usedMetalPrice <= 0) {
+      return badRequest("metal_price_used must be positive");
     }
     if (makingType === 'percent' && (makingCharge == null || makingCharge < 0)) {
       return badRequest("making_charge_percent is required and must be non-negative for percent-based making charge");
@@ -219,15 +289,18 @@ export async function PATCH(
       return badRequest("making_charge_flat is required and must be non-negative for flat making charge");
     }
     
-    patch.price = calculateGoldPrice({
-      goldPricePerGram: currentGoldPrice,
-      purityCarats: purity,
+    patch.price = calculateMetalPrice({
+      metalPricePerGram: usedMetalPrice,
+      purityCarats: materialType === 'gold' ? purity : null, // Will handle null for silver
       weightGrams: weight,
       makingCharge: makingCharge!,
       makingChargeType: makingType,
+      gstPercent: gstPercent,
+      materialType: materialType || 'gold',
     });
-    patch.gold_price_used = currentGoldPrice;
+    patch.gold_price_used = usedMetalPrice;
     patch.price_auto_calculated = true;
+    patch.gst_percent = gstPercent;
   }
   
   patch.updated_at = new Date().toISOString();
@@ -239,10 +312,27 @@ export async function PATCH(
     .select()
     .single();
   if (error) {
+    console.error('[API] PATCH product error:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     if (error.code === "PGRST116") return notFound();
     return serverError(error);
   }
   return Response.json({ data });
+  } catch (error) {
+    console.error('[API] PATCH /api/admin/products/[id] CATCH BLOCK ERROR:', error);
+    if (error instanceof Error) {
+      console.error('[API] Error name:', error.name);
+      console.error('[API] Error message:', error.message);
+      console.error('[API] Error stack:', error.stack);
+    } else {
+      console.error('[API] Non-error object caught:', error);
+    }
+    return serverError(error instanceof Error ? error.message : 'Unknown error');
+  }
 }
 
 export async function DELETE(

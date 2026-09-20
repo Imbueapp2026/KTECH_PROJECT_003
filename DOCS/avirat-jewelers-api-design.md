@@ -52,8 +52,8 @@ Admin Form ──POST──▶ Admin API Route ──▶ Supabase (products, sto
 | `description` | `text` | required |
 | `hallmark_certified` | `boolean` | default `false` |
 | `availability` | `enum('available','made_to_order','sold')` | default `'available'` |
-| `is_offer` | `boolean` | default `false` |
-| `offer_label` | `text` (nullable) | e.g. "Festive Special"; only meaningful when `is_offer = true` |
+| `price` | `numeric` | required, non-negative |
+| `offer_id` | `uuid` (FK → offers.id, nullable) | links to offer if applicable |
 | `status` | `enum('draft','published','archived')` | default `'draft'` — see §5 state machine |
 | `image_urls` | `text[]` | 1–4 Supabase Storage public URLs, ordered |
 | `created_at` | `timestamptz` | default `now()` |
@@ -65,10 +65,36 @@ Admin Form ──POST──▶ Admin API Route ──▶ Supabase (products, sto
 |---|---|---|
 | `id` | `uuid` (PK) | |
 | `name` | `text` | required, unique |
-| `icon_url` | `text` | Supabase Storage URL |
+| `slug` | `text` | URL-friendly identifier |
+| `icon_url` | `text` (nullable) | Supabase Storage URL |
+| `icon_svg` | `text` (nullable) | SVG icon data |
+| `sort_order` | `integer` | display order |
+| `is_system` | `boolean` | default `false` — system categories cannot be deleted |
 | `created_at` | `timestamptz` | |
 
-### 2.3 `inquiries` table
+### 2.3 `offers` table
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `uuid` (PK) | |
+| `label` | `text` | required, e.g. "Festive Special" |
+| `description` | `text` (nullable) | offer details |
+| `is_active` | `boolean` | default `true` |
+| `start_date` | `date` (nullable) | offer start date |
+| `end_date` | `date` (nullable) | offer end date |
+| `created_at` | `timestamptz` | |
+
+### 2.4 `discounts` table
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `uuid` (PK) | |
+| `offer_id` | `uuid` (FK → offers.id) | required |
+| `discount_type` | `enum('percentage','flat')` | required |
+| `value` | `numeric` | required — percentage (0-100) or flat amount |
+| `created_at` | `timestamptz` | |
+
+### 2.5 `inquiries` table
 
 | Field | Type | Notes |
 |---|---|---|
@@ -81,7 +107,7 @@ Admin Form ──POST──▶ Admin API Route ──▶ Supabase (products, sto
 | `status` | `enum('new','contacted','resolved')` | default `'new'` |
 | `created_at` | `timestamptz` | |
 
-### 2.4 `visits` table
+### 2.6 `visits` table
 
 | Field | Type | Notes |
 |---|---|---|
@@ -98,6 +124,8 @@ Admin Form ──POST──▶ Admin API Route ──▶ Supabase (products, sto
 |---|---|---|
 | `products` | `SELECT` where `status = 'published'` only | full `SELECT`/`INSERT`/`UPDATE`/`DELETE` |
 | `categories` | `SELECT` all | full CRUD |
+| `offers` | `SELECT` where `is_active = true` only | full CRUD |
+| `discounts` | `SELECT` via offers relation only | full CRUD |
 | `inquiries` | `INSERT` only | `SELECT`/`UPDATE` (status changes) |
 | `visits` | `INSERT` only | `SELECT` |
 
@@ -120,22 +148,23 @@ Creates a new product.
   "description": "string",
   "hallmark_certified": "boolean",
   "availability": "available | made_to_order | sold",
-  "is_offer": "boolean",
-  "offer_label": "string | null",
-  "images": ["base64 or multipart file[]"]
+  "price": "number",
+  "offer_id": "uuid | null",
+  "status": "draft | published | archived",
+  "image_urls": ["string[]"]
 }
 ```
 
 **Behavior**
-1. Validate payload (required fields, image count 1–4).
-2. Insert row with `status: 'draft'`.
-3. Upload each image to Supabase Storage bucket `product-images/{product_id}/`.
-4. On successful upload of all images, `UPDATE products SET status = 'published' WHERE id = ...`.
-5. If any image upload fails, leave `status = 'draft'` and return a partial-failure response so the admin UI can retry image upload without re-submitting the whole form.
+1. Validate payload (required fields, image count 0–4).
+2. Insert row with `status: 'draft'` (default).
+3. Images are uploaded separately via `POST /api/admin/products/upload` with optional `product_id` parameter.
+4. On successful image upload with `product_id`, the endpoint automatically updates the product's `image_urls` and flips status from `draft` to `published`.
+5. If image upload fails, product remains in `draft` status and admin can retry.
 
 **Response**
 ```json
-{ "id": "uuid", "status": "published | draft", "errors": [] }
+{ "data": { "id": "uuid", "status": "draft", ... } }
 ```
 
 #### `PATCH /api/admin/products/[id]`
@@ -145,7 +174,22 @@ Edits an existing product. Same body shape, partial update supported. Does not c
 Sets `status: 'archived'` (soft delete — never hard-deletes, to preserve inquiry history referencing the product).
 
 #### `POST /api/admin/categories`, `PATCH /api/admin/categories/[id]`
-Same shape pattern, simpler payload (name, icon upload).
+Same shape pattern, simpler payload (name, slug, icon upload).
+
+#### `DELETE /api/admin/categories/[id]`
+Soft delete with validation - refuses deletion if non-archived products reference the category.
+
+#### `GET /api/admin/offers`, `POST /api/admin/offers`
+List and create offers. GET includes joined discounts. POST accepts label, description, is_active, start_date, end_date.
+
+#### `PATCH /api/admin/offers/[id]`, `DELETE /api/admin/offers/[id]`
+Update offer details or delete with cascade (clears product offer_id references and deletes associated discounts).
+
+#### `GET /api/admin/discounts`, `POST /api/admin/discounts`
+List and create discounts. GET supports filtering by offer_id. POST requires offer_id, discount_type, value.
+
+#### `PATCH /api/admin/discounts/[id]`, `DELETE /api/admin/discounts/[id]`
+Update discount details or delete individual discount.
 
 #### `GET /api/admin/inquiries`, `PATCH /api/admin/inquiries/[id]`
 List/filter inquiries; update status (`new → contacted → resolved`).
@@ -153,7 +197,7 @@ List/filter inquiries; update status (`new → contacted → resolved`).
 ### 4.2 Public app (`apps/public`) — read + inquiry endpoints
 
 #### `GET /api/products`
-Catalog listing, supports query params: `category`, `sort` (excluding price-based sort, since price doesn't exist in schema), `offer=true`.
+Catalog listing, supports query params: `category`, `sort` (including price-based sort), `offer=true`.
 Used for SSR initial page load — the realtime subscription takes over after mount for live updates.
 
 #### `GET /api/products/[id]`
@@ -259,12 +303,11 @@ supabase
 1. **Draft→published review step**: does the client want a manual "Publish" button, or is automatic-on-image-upload-complete correct? (Currently designed as automatic.)
 2. **Inquiry spam protection**: rate-limit by IP, CAPTCHA, or honeypot field on `POST /api/inquiries`? Needs a decision before public launch.
 3. **Image processing**: are uploaded images resized/optimized server-side (e.g. via a Supabase Edge Function or admin-side sharp processing) before storage, or stored as-is? Affects load performance on the public catalog.
-4. **Offer expiry**: does `is_offer` / `offer_label` need a start/end date, or is it purely manual on/off with no auto-expiry?
 
 ---
 
 ## 8. Non-Functional Notes
 
-- **No price data anywhere in schema** — confirmed design decision, not an oversight; do not reintroduce price fields even for internal admin-only use, since the client's decision was to drop pricing from the system entirely, not just hide it from public view.
+- **Price data in schema** — price field added to products table as numeric type for internal admin use and potential future pricing features.
 - **Service role key** must never be bundled into any client-side JS — confirm build tooling doesn't leak it into the admin app's browser bundle.
 - **Realtime channel scaling**: fine at this store's expected traffic volume; if catalog grows very large, consider filtering the subscription further (e.g. by category) rather than one global channel.

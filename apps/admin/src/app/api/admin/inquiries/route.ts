@@ -23,7 +23,7 @@ export async function GET(req: Request) {
   let query = supabase
     .from("inquiries")
     .select(
-      "id, name, phone, email, message, product_id, status, created_at, product:products(id, name, image_urls)",
+      "id, name, phone, email, message, product_id, source_page, status, created_at, product:products(id, name, image_urls)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false });

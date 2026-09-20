@@ -151,16 +151,33 @@ export default function InquiriesPage() {
                   </p>
                 )}
                 <div className="flex items-center justify-between text-xs text-[var(--color-tertiary)] pt-1 border-t border-[var(--color-tertiary-soft)]">
-                  <span>
+                  <div className="flex items-center gap-3">
                     {row.product ? (
-                      <>
-                        <span className="text-[var(--color-quaternary)] font-medium">Re:</span>{" "}
-                        {row.product.name}
-                      </>
+                      <div className="flex items-center gap-2">
+                        {row.product.image_urls && row.product.image_urls[0] && (
+                          <img
+                            src={row.product.image_urls[0]}
+                            alt={row.product.name}
+                            className="w-8 h-8 object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                        <span>
+                          <span className="text-[var(--color-quaternary)] font-medium">Re:</span>{" "}
+                          {row.product.name}
+                        </span>
+                      </div>
                     ) : (
                       "General inquiry"
                     )}
-                  </span>
+                    {row.source_page && (
+                      <span className="text-[var(--color-tertiary-soft)]">
+                        from {row.source_page}
+                      </span>
+                    )}
+                  </div>
                   <span>{new Date(row.created_at).toLocaleString()}</span>
                 </div>
               </li>

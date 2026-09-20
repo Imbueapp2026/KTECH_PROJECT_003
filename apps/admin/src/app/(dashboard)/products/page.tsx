@@ -1,6 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useState, useMemo } from "react";
 import { api, ApiError } from "@/lib/api";
 import { ProductGrid, ProductGridSkeleton } from "@/components/products/ProductGrid";
 import { Badge } from "@/components/ui/Badge";
@@ -8,7 +7,6 @@ import { Input } from "@/components/ui/Input";
 import type { Category, OfferWithDiscounts, ProductJoined, Product } from "@/lib/data/types";
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductJoined[] | null>(null);
   const [allProducts, setAllProducts] = useState<ProductJoined[] | null>(null);
   const [categories, setCategories] = useState<Category[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +35,6 @@ export default function ProductsPage() {
           offer: row.offer_id ? (offerById.get(row.offer_id) ?? null) : null,
         }));
         setAllProducts(joined);
-        setProducts(joined);
         setCategories(c.data);
       } catch (err) {
         if (!cancelled) {
@@ -51,8 +48,8 @@ export default function ProductsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!allProducts) return;
+  const products = useMemo(() => {
+    if (!allProducts) return null;
 
     let filtered = [...allProducts];
 
@@ -74,8 +71,8 @@ export default function ProductsPage() {
       filtered = filtered.filter((p) => p.availability === availabilityFilter);
     }
 
-    setProducts(filtered);
-  }, [searchQuery, categoryFilter, statusFilter, availabilityFilter, allProducts]);
+    return filtered;
+  }, [allProducts, searchQuery, categoryFilter, statusFilter, availabilityFilter]);
 
   const published = allProducts?.filter((p) => p.status === "published").length ?? 0;
   const draft = allProducts?.filter((p) => p.status === "draft").length ?? 0;

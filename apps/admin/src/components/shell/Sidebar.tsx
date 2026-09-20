@@ -9,6 +9,7 @@ import { api, ApiError } from "@/lib/api";
 import {
   CategoriesIcon,
   DashboardIcon,
+  FestivalIcon,
   InquiryIcon,
   OffersIcon,
   ProductsIcon,
@@ -21,6 +22,7 @@ const tabs = [
   { href: "/inquiries", label: "Inquiry", Icon: InquiryIcon },
   { href: "/categories", label: "Categories", Icon: CategoriesIcon },
   { href: "/offers", label: "Offers and Discount", Icon: OffersIcon },
+  { href: "/festivals", label: "Festivals", Icon: FestivalIcon },
 ] as const;
 
 export function Sidebar() {

@@ -1,32 +1,43 @@
-export interface CalculateGoldPriceParams {
-  goldPricePerGram: number;
-  purityCarats: 24 | 22 | 18 | 14 | 9;
+export interface CalculateMetalPriceParams {
+  metalPricePerGram: number;
+  purityCarats: 24 | 22 | 18 | 14 | 9 | null;
   weightGrams: number;
   makingCharge: number;
   makingChargeType: 'percent' | 'flat';
+  gstPercent?: number;
+  materialType?: 'gold' | 'silver' | 'platinum';
 }
 
-export function calculateGoldPrice({
-  goldPricePerGram,
+export function calculateMetalPrice({
+  metalPricePerGram,
   purityCarats,
   weightGrams,
   makingCharge,
   makingChargeType,
-}: CalculateGoldPriceParams): number {
-  const purityFactor = {
-    24: 1.0,
-    22: 0.9167,
-    18: 0.75,
-    14: 0.5833,
-    9: 0.375,
-  }[purityCarats];
+  gstPercent = 5,
+  materialType = 'gold',
+}: CalculateMetalPriceParams): number {
+  let purityFactor = 1.0;
 
-  const goldValue = goldPricePerGram * weightGrams * purityFactor;
+  if (materialType === 'gold' && purityCarats) {
+    purityFactor = {
+      24: 1.0,
+      22: 0.92,
+      18: 0.76,
+      14: 0.5833,
+      9: 0.40,
+    }[purityCarats] || 1.0;
+  }
+
+  const metalValue = metalPricePerGram * weightGrams * purityFactor;
   const charge = makingChargeType === 'percent' 
-    ? goldValue * (makingCharge / 100) 
+    ? metalValue * (makingCharge / 100) 
     : makingCharge;
   
-  return Math.round(goldValue + charge);
+  const basePrice = metalValue + charge;
+  const gst = basePrice * (gstPercent / 100);
+  
+  return Math.round(basePrice + gst);
 }
 
 export const PURITY_OPTIONS = [

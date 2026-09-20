@@ -113,11 +113,28 @@ export async function POST(req: Request) {
       );
     }
     
+    // Fetch the current silver price to pass to recalculate_all_products_with_missing_data
+    let silverPrice = 0;
+    try {
+      const { data: silverData } = await supabase
+        .from('silver_prices')
+        .select('price_per_gram')
+        .eq('is_current', true)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      silverPrice = silverData?.price_per_gram || 0;
+    } catch (err) {
+      console.error("Failed to fetch silver price for recalculation fallback:", err);
+    }
+
     // Automatically recalculate all product prices with the new gold price
-    console.log("Recalculating all product prices with new gold price:", price_per_gram);
+    console.log("Recalculating all gold product prices with new gold price:", price_per_gram);
     const { data: recalcData, error: recalcError } = await supabase
       .rpc('recalculate_all_products_with_missing_data', {
-        p_gold_price_per_gram: price_per_gram
+        p_gold_price_per_gram: price_per_gram,
+        p_silver_price_per_gram: silverPrice,
+        p_material_type: 'gold'
       });
     
     let recalcResult = { updated_count: 0, skipped_count: 0 };

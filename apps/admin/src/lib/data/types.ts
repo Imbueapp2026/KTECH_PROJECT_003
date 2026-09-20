@@ -54,6 +54,18 @@ export interface Product {
   image_urls: string[];
   created_at: string;
   updated_at: string;
+  purity_carats?: number | null;
+  weight_grams?: number | null;
+  net_weight_grams?: number | null;
+  making_charge_percent?: number | null;
+  making_charge_flat?: number | null;
+  making_charge_type?: 'percent' | 'flat' | null;
+  certifications?: string | null;
+  gold_price_used?: number | null;
+  price_auto_calculated?: boolean;
+  gst_percent?: number | null;
+  material_type?: 'gold' | 'silver' | null;
+  festival_id?: string | null;
 }
 
 export interface Inquiry {
@@ -63,8 +75,22 @@ export interface Inquiry {
   email: string | null;
   message: string | null;
   product_id: string | null;
+  source_page: string | null;
   status: InquiryStatus;
   created_at: string;
+}
+
+export interface Festival {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  date: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 /** Resolved views (joined on the server or in mock) for display purposes. */

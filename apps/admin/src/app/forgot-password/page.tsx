@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
       />
       <form
         onSubmit={onSubmit}
-        className="relative w-full max-w-md bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-lg)] shadow-[var(--shadow-modal)] p-8 flex flex-col gap-5"
+        className="relative w-full max-w-md bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] shadow-[var(--shadow-modal)] p-8 flex flex-col gap-5"
       >
         <div className="flex items-center gap-2 pb-1">
           <span aria-hidden className="inline-block w-2.5 h-2.5 rounded-full bg-[var(--color-quaternary)]" />

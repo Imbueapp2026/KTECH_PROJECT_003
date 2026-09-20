@@ -22,6 +22,7 @@ type Detail = Product & {
   offer: (Offer & { discount: Discount[] | Discount | null }) | null;
   purity_carats?: number | null;
   weight_grams?: number | null;
+  net_weight_grams?: number | null;
   making_charge_percent?: number | null;
   making_charge_flat?: number | null;
   making_charge_type?: 'percent' | 'flat' | null;
@@ -46,8 +47,8 @@ export default function ProductDetailPage() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await api.get<{ data: Detail }>(`/api/admin/products/${id}`);
-        if (!cancelled) setProduct(res.data);
+        const res = await api.get<{ data?: Detail } & Detail>(`/api/admin/products/${id}`);
+        if (!cancelled) setProduct(res?.data || res);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : "Failed to load product.");
@@ -266,8 +267,14 @@ export default function ProductDetailPage() {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <dt className="text-[var(--color-tertiary)]">Purity</dt>
               <dd className="font-medium">{product.purity_carats ? `${product.purity_carats}K` : "—"}</dd>
-              <dt className="text-[var(--color-tertiary)]">Weight</dt>
+              <dt className="text-[var(--color-tertiary)]">{product.net_weight_grams ? "Gross Weight" : "Weight"}</dt>
               <dd className="font-medium">{product.weight_grams ? `${product.weight_grams.toFixed(1)}g` : "—"}</dd>
+              {product.net_weight_grams && (
+                <>
+                  <dt className="text-[var(--color-tertiary)]">Net Weight</dt>
+                  <dd className="font-medium">{`${product.net_weight_grams.toFixed(1)}g`}</dd>
+                </>
+              )}
               <dt className="text-[var(--color-tertiary)]">Making Charge</dt>
               <dd className="font-medium">
                 {product.making_charge_type === 'percent' && product.making_charge_percent

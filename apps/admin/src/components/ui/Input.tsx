@@ -33,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           showError
             ? "border-[var(--color-error)] bg-[var(--color-error-soft)]/30"
             : "border-[var(--color-tertiary-soft)]"
-        } rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] placeholder:text-[var(--color-tertiary)] transition-colors focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20 focus-ring ${className}`}
+        } rounded-[var(--radius-sm)] text-sm text-[var(--color-ink)] placeholder:text-[var(--color-tertiary)] transition-colors focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20 focus-ring ${className}`}
         aria-invalid={showError}
         aria-describedby={
           showError ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined

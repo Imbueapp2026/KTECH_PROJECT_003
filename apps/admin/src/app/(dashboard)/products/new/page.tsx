@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ImageUploader } from "@/components/products/ImageUploader";
-import { calculateGoldPrice, PURITY_OPTIONS, MAKING_CHARGE_TYPES } from "@/lib/pricing";
+import { calculateMetalPrice, PURITY_OPTIONS, MAKING_CHARGE_TYPES } from "@/lib/pricing";
 import type { Category, Offer } from "@/lib/data/types";
 
 export default function NewProductPage() {
@@ -20,54 +20,82 @@ export default function NewProductPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [goldPrice, setGoldPrice] = useState<number | null>(null);
-  const [goldPriceLoading, setGoldPriceLoading] = useState(true);
+  const [silverPrice, setSilverPrice] = useState<number | null>(null);
+  const [metalPriceLoading, setMetalPriceLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
     category_id: "",
     description: "",
     hallmark_certified: false,
-    availability: "",
+    availability: "available",
     offer_id: "",
-    status: "draft" as "draft" | "published" | "archived",
-    // Gold pricing fields
+    status: "published" as "draft" | "published" | "archived",
+    // Material and pricing fields
+    material_type: "gold" as "gold" | "silver",
+    direct_price: "",
     purity_carats: 22 as 24 | 22 | 18 | 14 | 9,
     weight_grams: "",
+    net_weight_grams: "",
     making_charge: "",
     making_charge_type: "percent" as "percent" | "flat",
+    gst_percent: "5",
     certifications: "",
+    festival_id: "",
   });
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [festivals, setFestivals] = useState<Array<{ id: string; name: string; is_active?: boolean }>>([]);
+
+  useEffect(() => {
+    async function loadFestivals() {
+      try {
+        const res = await api.get<{ data?: Array<{ id: string; name: string; is_active?: boolean }> }>("/api/admin/festivals");
+        setFestivals(res?.data || []);
+      } catch (err) {
+        console.error("Failed to load festivals:", err);
+        setFestivals([]); // Set empty array on error to prevent rendering issues
+      }
+    }
+    loadFestivals();
+  }, []);
 
   const calculateEstimatedPrice = (): number => {
-    if (!goldPrice || !formData.weight_grams || !formData.making_charge) return 0;
+    if (formData.direct_price && !isNaN(parseFloat(formData.direct_price))) {
+      return parseFloat(formData.direct_price);
+    }
+    const activePrice = formData.material_type === 'silver' ? silverPrice : goldPrice;
+    if (!activePrice || !formData.weight_grams || !formData.making_charge) return 0;
     
-    return calculateGoldPrice({
-      goldPricePerGram: goldPrice,
-      purityCarats: formData.purity_carats,
+    return calculateMetalPrice({
+      metalPricePerGram: activePrice,
+      purityCarats: formData.material_type === 'gold' ? formData.purity_carats : null,
       weightGrams: parseFloat(formData.weight_grams),
       makingCharge: parseFloat(formData.making_charge),
       makingChargeType: formData.making_charge_type,
+      gstPercent: parseFloat(formData.gst_percent),
+      materialType: formData.material_type,
     });
   };
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [catRes, offerRes, goldRes] = await Promise.all([
+        const [catRes, offerRes, goldRes, silverRes] = await Promise.all([
           api.get<{ data: Category[] }>("/api/admin/categories"),
           api.get<{ data: Offer[] }>("/api/admin/offers"),
           api.get<{ price_per_gram: number | null }>("/api/admin/gold-price").catch(() => ({ price_per_gram: null })),
+          api.get<{ price_per_gram: number | null }>("/api/admin/silver-price").catch(() => ({ price_per_gram: null })),
         ]);
         
         setCategories(catRes.data);
         setOffers(offerRes.data);
         setGoldPrice(goldRes.price_per_gram);
+        setSilverPrice(silverRes.price_per_gram);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Failed to load data.");
       } finally {
         setLoading(false);
-        setGoldPriceLoading(false);
+        setMetalPriceLoading(false);
       }
     }
     loadData();
@@ -79,7 +107,7 @@ export default function NewProductPage() {
     setError(null);
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         name: formData.name,
         category_id: formData.category_id || null,
         description: formData.description,
@@ -88,20 +116,32 @@ export default function NewProductPage() {
         offer_id: formData.offer_id || null,
         status: formData.status,
         image_urls: imageUrls,
-        // Gold pricing fields
-        purity_carats: formData.purity_carats,
+        // Material and pricing fields
+        material_type: formData.material_type,
+        price: formData.direct_price ? parseFloat(formData.direct_price) : null,
+        purity_carats: formData.material_type === 'gold' ? formData.purity_carats : null,
         weight_grams: formData.weight_grams ? parseFloat(formData.weight_grams) : null,
+        net_weight_grams: formData.net_weight_grams ? parseFloat(formData.net_weight_grams) : null,
         making_charge_percent: formData.making_charge_type === 'percent' ? (formData.making_charge ? parseFloat(formData.making_charge) : null) : null,
         making_charge_flat: formData.making_charge_type === 'flat' ? (formData.making_charge ? parseFloat(formData.making_charge) : null) : null,
         making_charge_type: formData.making_charge_type,
+        gst_percent: formData.gst_percent ? parseFloat(formData.gst_percent) : 5,
         certifications: formData.certifications || null,
-        gold_price_used: goldPrice,
+        festival_id: formData.festival_id && formData.festival_id.trim() !== "" ? formData.festival_id : null,
       };
 
-      const res = await api.post<{ data: { id: string } }>("/api/admin/products", payload);
+      console.log('[Frontend] Sending product payload:', JSON.stringify(payload, null, 2));
+
+      const res = await api.post<{ id?: string; data?: { id?: string } }>("/api/admin/products", payload);
+      const productId = res?.id || res?.data?.id;
       push("Product created successfully.", "success");
-      router.push(`/products/${res.data.id}`);
+      if (productId) {
+        router.push(`/products/${productId}`);
+      } else {
+        router.push("/products");
+      }
     } catch (err) {
+      console.error('[Frontend] Product creation error:', err);
       setError(err instanceof ApiError ? err.message : "Failed to create product.");
       push(err instanceof ApiError ? err.message : "Failed to create product.", "danger");
     } finally {
@@ -175,6 +215,7 @@ export default function NewProductPage() {
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={4}
+            required
             className="w-full px-3 py-2 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20 resize-none"
           />
         </div>
@@ -192,56 +233,183 @@ export default function NewProductPage() {
           </label>
         </div>
 
-        <Input
-          label="Availability"
-          value={formData.availability}
-          onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
-          placeholder="e.g., In Stock, Made to Order"
-        />
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">
+            Festival Collection
+          </label>
+          <select
+            value={formData.festival_id}
+            onChange={(e) => setFormData({ ...formData, festival_id: e.target.value })}
+            className="w-full px-3 py-2 border border-[var(--color-tertiary-soft)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]"
+          >
+            <option value="">No festival</option>
+            {festivals.map((festival) => (
+              <option key={festival.id} value={festival.id}>
+                {festival.name} {festival.is_active ? "(Active)" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+            Availability
+          </label>
+          <select
+            value={formData.availability}
+            onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
+            className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+          >
+            <option value="available">Available (In Stock)</option>
+            <option value="made_to_order">Made to Order</option>
+            <option value="sold">Sold Out</option>
+          </select>
+        </div>
 
-        {/* Gold Pricing Section */}
+        {/* Material and Pricing Section */}
         <div className="bg-[var(--color-quaternary-soft)]/40 border border-[var(--color-quaternary)]/20 rounded-[var(--radius-md)] p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--color-quaternary)]">
-              Gold Pricing
+              Material & Pricing
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+              Direct Price (₹)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={formData.direct_price}
+              onChange={(e) => setFormData({ ...formData, direct_price: e.target.value })}
+              className="h-10 w-full px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+              placeholder="Leave blank to calculate from metal pricing"
+            />
+            <p className="text-xs text-[var(--color-tertiary)] mt-1">
+              Enter a price to use it directly. Leave blank for automatic pricing.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
-                Purity <span className="text-[var(--color-error)]">*</span>
+                Material Type
               </label>
               <select
-                value={formData.purity_carats}
-                onChange={(e) => setFormData({ ...formData, purity_carats: parseInt(e.target.value) as 24 | 22 | 18 | 14 | 9 })}
+                value={formData.material_type}
+                onChange={(e) => setFormData({ ...formData, material_type: e.target.value as "gold" | "silver" })}
                 className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
-                required
               >
-                {PURITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                <option value="gold">Gold</option>
+                <option value="silver">Silver</option>
               </select>
             </div>
 
             <div>
               <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
-                Weight (grams) <span className="text-[var(--color-error)]">*</span>
+                GST (%)
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                value={formData.weight_grams}
-                onChange={(e) => setFormData({ ...formData, weight_grams: e.target.value })}
+                max="100"
+                value={formData.gst_percent}
+                onChange={(e) => setFormData({ ...formData, gst_percent: e.target.value })}
                 className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
-                placeholder="10.0"
-                required
+                placeholder="5"
               />
             </div>
           </div>
+
+          {formData.material_type === 'gold' && (
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+                  Purity <span className="text-[var(--color-error)]">*</span>
+                </label>
+                <select
+                  value={formData.purity_carats}
+                  onChange={(e) => setFormData({ ...formData, purity_carats: parseInt(e.target.value) as 24 | 22 | 18 | 14 | 9 })}
+                  className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+                  required={!formData.direct_price}
+                >
+                  {PURITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+                  Weight (grams) <span className="text-[var(--color-error)]">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.weight_grams}
+                  onChange={(e) => setFormData({ ...formData, weight_grams: e.target.value })}
+                  className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+                  placeholder="10.0"
+                  required={!formData.direct_price}
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+                  Net Weight (grams)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.net_weight_grams}
+                  onChange={(e) => setFormData({ ...formData, net_weight_grams: e.target.value })}
+                  className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+                  placeholder="9.5"
+                />
+              </div>
+            </div>
+          )}
+
+          {formData.material_type === 'silver' && (
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+                  Weight (grams) <span className="text-[var(--color-error)]">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.weight_grams}
+                  onChange={(e) => setFormData({ ...formData, weight_grams: e.target.value })}
+                  className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+                  placeholder="10.0"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+                  Net Weight (grams)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.net_weight_grams}
+                  onChange={(e) => setFormData({ ...formData, net_weight_grams: e.target.value })}
+                  className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+                  placeholder="9.5"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div>
@@ -273,7 +441,7 @@ export default function NewProductPage() {
                 onChange={(e) => setFormData({ ...formData, making_charge: e.target.value })}
                 className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
                 placeholder={formData.making_charge_type === 'percent' ? '10' : '500'}
-                required
+                required={!formData.direct_price}
               />
             </div>
           </div>
@@ -293,23 +461,35 @@ export default function NewProductPage() {
 
           {/* Live Price Preview */}
           <div className="mt-4 pt-4 border-t border-[var(--color-quaternary)]/20">
-            {goldPriceLoading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : goldPrice ? (
+            {formData.direct_price && !isNaN(parseFloat(formData.direct_price)) ? (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--color-quaternary)] mb-1">
-                  Estimated Price
+                  Direct Price (Override Active)
+                </p>
+                <p className="text-2xl font-semibold text-[var(--color-ink)]">
+                  ₹{parseFloat(formData.direct_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-[var(--color-tertiary)] mt-1">
+                  Fixed price override will be saved. Clear the Direct Price field to use automatic metal pricing.
+                </p>
+              </div>
+            ) : metalPriceLoading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (formData.material_type === 'silver' ? silverPrice : goldPrice) ? (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--color-quaternary)] mb-1">
+                  Estimated Price (Auto-Calculated)
                 </p>
                 <p className="text-2xl font-semibold text-[var(--color-ink)]">
                   ₹{calculateEstimatedPrice().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-[var(--color-tertiary)] mt-1">
-                  Based on current gold price: ₹{goldPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/g
+                  Based on current {formData.material_type} price: ₹{(formData.material_type === 'silver' ? silverPrice : goldPrice)?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/g
                 </p>
               </div>
             ) : (
               <p className="text-sm text-[var(--color-error)]">
-                Gold price unavailable — cannot calculate
+                {formData.material_type === 'silver' ? 'Silver' : 'Gold'} price unavailable — cannot calculate
               </p>
             )}
           </div>
@@ -343,8 +523,8 @@ export default function NewProductPage() {
             onChange={(e) => setFormData({ ...formData, status: e.target.value as "draft" | "published" | "archived" })}
             className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
           >
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
+            <option value="published">Published (Live)</option>
+            <option value="draft">Draft (Hidden)</option>
             <option value="archived">Archived</option>
           </select>
         </div>

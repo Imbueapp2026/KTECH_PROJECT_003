@@ -38,12 +38,13 @@ export default function NewOfferPage() {
         end_date: formData.end_date || null,
       };
 
-      const offerRes = await api.post<{ data: Offer }>("/api/admin/offers", offerPayload);
+      const offerRes = await api.post<any>("/api/admin/offers", offerPayload);
+      const offerId = offerRes?.id || offerRes?.data?.id;
       
       // Create discount if value is provided
-      if (formData.discount_value) {
+      if (formData.discount_value && offerId) {
         const discountPayload = {
-          offer_id: offerRes.data.id,
+          offer_id: offerId,
           discount_type: formData.discount_type,
           value: parseFloat(formData.discount_value),
         };

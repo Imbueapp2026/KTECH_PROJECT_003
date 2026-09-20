@@ -20,10 +20,23 @@ export async function POST(req: Request) {
     
     const supabase = getServiceClient();
     
+    // Fetch the current silver price to pass to recalculate_all_products_with_missing_data
+    const { data: silverData } = await supabase
+      .from('silver_prices')
+      .select('price_per_gram')
+      .eq('is_current', true)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    const silverPrice = silverData?.price_per_gram || 0;
+    
     // Recalculate ALL products (not just auto-priced ones)
     const { data, error } = await supabase
       .rpc('recalculate_all_products_with_missing_data', {
-        p_gold_price_per_gram: gold_price_per_gram
+        p_gold_price_per_gram: gold_price_per_gram,
+        p_silver_price_per_gram: silverPrice,
+        p_material_type: 'gold'
       });
     
     if (error) {

@@ -6,12 +6,14 @@ const titles: Record<string, { label: string; section: string }> = {
   "/inquiries": { label: "Inquiry", section: "Conversations" },
   "/categories": { label: "Categories", section: "Organization" },
   "/offers": { label: "Offers and Discount", section: "Promotions" },
+  "/festivals": { label: "Festivals", section: "Promotions" },
+  "/festivals/new": { label: "Add Festival", section: "Promotions" },
 };
 
 export function MobileTopbar() {
   const pathname = usePathname() ?? "";
   const match = Object.entries(titles).find(([prefix]) =>
-    pathname.startsWith(prefix),
+    pathname === prefix || pathname.startsWith(prefix + "/"),
   )?.[1];
   if (!match) return null;
   return (

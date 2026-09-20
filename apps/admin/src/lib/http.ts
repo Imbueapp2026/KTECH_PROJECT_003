@@ -90,10 +90,20 @@ export function serverError(err: unknown, details?: unknown) {
   const isDev = process.env.NODE_ENV === "development";
   
   // In development, include the full error details
-  const errorDetails = isDev ? (err instanceof Error ? err.stack : err) : undefined;
+  const errorDetails = isDev ? {
+    message: err instanceof Error ? err.message : String(err),
+    stack: err instanceof Error ? err.stack : undefined,
+    originalError: err
+  } : undefined;
   
-  // Log error for debugging
-  console.error("[api/admin] error:", err);
+  // Log error for debugging with more context
+  console.error("[api/admin] serverError called:", {
+    errorMessage: message,
+    errorType: err instanceof Error ? err.constructor.name : typeof err,
+    isDev,
+    additionalDetails: details
+  });
+  console.error("[api/admin] Full error object:", err);
   
   return createErrorResponse(
     message,
@@ -119,7 +129,10 @@ export function parseJson<T>(req: Request): Promise<T | null> {
   return req
     .json()
     .then((v) => v as T)
-    .catch(() => null);
+    .catch((error) => {
+      console.error('[parseJson] Failed to parse JSON:', error);
+      return null;
+    });
 }
 
 export function asString(v: unknown, max = 5000): string | null {

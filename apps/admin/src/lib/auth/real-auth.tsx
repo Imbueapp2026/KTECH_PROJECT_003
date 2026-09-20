@@ -44,17 +44,14 @@ function toAuthUser(u: User | null): AuthUser | null {
 }
 
 export function RealAuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(false);
   const auth = getFirebaseAuth();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState<boolean>(() => Boolean(auth));
 
   useEffect(() => {
     if (!auth) {
-      setLoading(false);
       return;
     }
-    
-    setLoading(true);
     
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(toAuthUser(u));
@@ -71,8 +68,9 @@ export function RealAuthProvider({ children }: { children: ReactNode }) {
       getIdToken: async () => {
         const u = auth?.currentUser;
         if (!u) return null;
-        // Force refresh if token is about to expire (Firebase SDK handles caching internally)
-        return u.getIdToken(/* forceRefresh */ true);
+        // Don't force refresh - let Firebase SDK handle token refresh automatically
+        // Only force refresh if we explicitly need to (e.g., after a 401 error)
+        return u.getIdToken(/* forceRefresh */ false);
       },
       signInWithEmail: async (email, password) => {
         const firebaseAuth = auth || getFirebaseAuth();

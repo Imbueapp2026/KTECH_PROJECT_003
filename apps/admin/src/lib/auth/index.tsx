@@ -8,7 +8,7 @@
  * silently falling back to a stub. The previous "STUB MODE" branch was
  * removed per AGENT_LOG §A.2 — there is no place for fake auth in this app.
  */
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { RealAuthProvider, type AuthUser } from "./real-auth";
 import { setTokenGetter } from "./get-token";
 
@@ -46,14 +46,22 @@ export function AuthBridge({ children }: { children: ReactNode }) {
 function AuthBridgeInner({ children }: { children: ReactNode }) {
   const { useRealAuth } = require("./real-auth");
   const v = useRealAuth();
-  
-  // Set token getter when value changes
-  const { useEffect } = require("react");
+
+  // Keep a stable ref to the latest getIdToken so the getter registered below
+  // always delegates to the current function without needing to re-register.
+  const getIdTokenRef = useRef(v.getIdToken);
+  getIdTokenRef.current = v.getIdToken;
+
+  // Register the getter once on mount. The stable ref wrapper means we never
+  // need to re-run this effect — and critically, we never clear the getter
+  // during a normal re-render (e.g. auth state change, token refresh).
   useEffect(() => {
-    setTokenGetter(v.getIdToken);
-    return () => setTokenGetter(null as any); // cleanup on unmount
-  }, [v.getIdToken]);
-  
+    setTokenGetter(() => getIdTokenRef.current());
+    // Only clear on true unmount, not on re-renders.
+    return () => setTokenGetter(null as any);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — ref always holds latest value
+
   return <Ctx.Provider value={v}>{children}</Ctx.Provider>;
 }
 

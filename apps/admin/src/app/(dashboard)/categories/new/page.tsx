@@ -6,7 +6,6 @@ import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import type { Category } from "@/lib/data/types";
 
 export default function NewCategoryPage() {
   const router = useRouter();
@@ -21,9 +20,14 @@ export default function NewCategoryPage() {
     setError(null);
     try {
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const res = await api.post<{ data: Category }>("/api/admin/categories", { name, slug });
+      const res = await api.post<{ id?: string; data?: { id?: string } }>("/api/admin/categories", { name, slug });
+      const categoryId = res?.id || res?.data?.id;
       push("Category created successfully.", "success");
-      router.push(`/categories/${res.data.id}`);
+      if (categoryId) {
+        router.push(`/categories/${categoryId}`);
+      } else {
+        router.push("/categories");
+      }
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to create category.";
       setError(msg);
