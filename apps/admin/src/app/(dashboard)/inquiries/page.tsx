@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import type { InquiryStatus, InquiryJoined, Product } from "@/lib/data/types";
+import type { InquiryStatus, InquiryJoined } from "@/lib/data/types";
 
 const STATUS_TONE: Record<InquiryStatus, "new" | "info" | "neutral"> = {
   new: "new",

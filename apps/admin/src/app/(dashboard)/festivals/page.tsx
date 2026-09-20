@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
@@ -12,7 +11,6 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { Festival } from "@/lib/data/types";
 
 export default function FestivalsPage() {
-  const router = useRouter();
   const { push } = useToast();
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +24,8 @@ export default function FestivalsPage() {
 
   async function loadFestivals() {
     try {
-      const res = await api.get<any>("/api/admin/festivals");
-      setFestivals(res?.data || res || []);
+      const res = await api.get<{ data?: Festival[] } | Festival[]>("/api/admin/festivals");
+      setFestivals(Array.isArray(res) ? res : res?.data || []);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load festivals.");
       setFestivals([]);

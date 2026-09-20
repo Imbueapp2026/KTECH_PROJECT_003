@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
-import type { Offer, DiscountType } from "@/lib/data/types";
+import type { DiscountType } from "@/lib/data/types";
 
 export default function NewOfferPage() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function NewOfferPage() {
         end_date: formData.end_date || null,
       };
 
-      const offerRes = await api.post<any>("/api/admin/offers", offerPayload);
+      const offerRes = await api.post<{ id?: string; data?: { id?: string } }>("/api/admin/offers", offerPayload);
       const offerId = offerRes?.id || offerRes?.data?.id;
       
       // Create discount if value is provided

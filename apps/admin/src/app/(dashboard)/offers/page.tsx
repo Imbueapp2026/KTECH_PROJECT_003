@@ -71,22 +71,6 @@ export default function OffersPage() {
     };
   }, []);
 
-  async function addProductToFestival(productId: string) {
-    if (!activeFestival) {
-      push("No active festival to add products to.", "danger");
-      return;
-    }
-    
-    try {
-      await api.post(`/api/admin/festivals/${activeFestival.id}/products`, { product_id: productId });
-      push("Product added to festival.", "success");
-      // Reload data to update festival status
-      window.location.reload();
-    } catch (err) {
-      push(err instanceof ApiError ? err.message : "Failed to add product to festival.", "danger");
-    }
-  }
-
   async function addAllOfferProductsToFestival(offerId: string) {
     if (!activeFestival) {
       push("No active festival to add products to.", "danger");
