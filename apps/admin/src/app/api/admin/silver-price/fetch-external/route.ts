@@ -42,9 +42,7 @@ async function fetchsilverPriceFromAPI(): Promise<{ price: number; source: strin
 
 export async function POST() {
   try {
-    console.log("Step 1: Getting Supabase client");
     const supabase = getServiceClient();
-    console.log("Step 2: Got client, querying last price");
     
     // Get the last cached price
     const { data: lastPrice, error: lastPriceError } = await supabase
@@ -53,8 +51,6 @@ export async function POST() {
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    
-    console.log("Step 3: Query result:", { lastPrice, lastPriceError });
     
     if (lastPriceError) {
       console.error("Query error:", lastPriceError);
@@ -65,9 +61,7 @@ export async function POST() {
     }
     
     // Try to fetch from external API
-    console.log("Step 4: Fetching from API");
     const apiResult = await fetchsilverPriceFromAPI();
-    console.log("Step 5: API result:", apiResult);
     
     let finalPrice: number;
     let finalSource: string;
@@ -94,7 +88,6 @@ export async function POST() {
       }
     } else {
       if (lastPrice) {
-        console.log("API failed, using cached price:", lastPrice.price_per_gram);
         finalPrice = lastPrice.price_per_gram;
         finalSource = 'fallback';
         finalSourceUrl = null;
@@ -106,18 +99,13 @@ export async function POST() {
       }
     }
     
-    console.log("Step 6: Determined final price:", finalPrice);
-    
     // Insert the final price - try minimal insert first
-    console.log("Step 7: Inserting price");
     const { error } = await supabase
       .from('silver_prices')
       .insert({
         price_per_gram: finalPrice,
         source: finalSource
       });
-    
-    console.log("Step 8: Insert result:", { error });
     
     if (error) {
       console.error("Insert failed:", error);

@@ -30,13 +30,15 @@ export async function GET(req: Request) {
       return serverError("Failed to fetch categories");
     }
 
-    const categoriesWithCount = (data || []).map((cat: Record<string, unknown>) => ({
-      id: cat.id,
-      name: cat.name,
-      slug: cat.slug,
-      icon_svg: cat.icon_svg,
-      product_count: cat.products?.length || 0,
-    }));
+    const categoriesWithCount = (data || []).map(
+      (cat: { products?: Array<unknown> } & Record<string, unknown>) => ({
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        icon_svg: cat.icon_svg,
+        product_count: Array.isArray(cat.products) ? cat.products.length : 0,
+      })
+    );
 
     const response = Response.json({ data: categoriesWithCount }, {
       headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=600' }

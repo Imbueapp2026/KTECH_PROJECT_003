@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { formatPrice } from "@/lib/utils";
 import type { ProductJoined, Festival } from "shared-types";
@@ -121,10 +122,12 @@ export function FeaturedFestivalSection() {
               ref={bannerRef}
               className="relative aspect-[21/9] min-h-[220px] max-h-[420px] w-full overflow-hidden"
             >
-              <img
+              <Image
                 src={activeFestival.image_url || "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=1200&h=600&fit=crop"}
                 alt={activeFestival.name}
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                fill
+                sizes="100vw"
+                className="object-cover transition-transform duration-700 hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
@@ -172,10 +175,12 @@ export function FeaturedFestivalSection() {
                   {/* Image container with off-white background */}
                   <div className="relative aspect-square bg-[#FAF8F5] overflow-hidden rounded-sm">
                     {product.image_urls && product.image_urls.length > 0 ? (
-                      <img
+                      <Image
                         src={product.image_urls[hoveredImageIndex[product.id] || 0]}
                         alt={product.name}
-                        className="w-full h-full object-contain p-[12%] transition-transform duration-300 ease-out group-hover:scale-105"
+                        fill
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        className="object-contain p-[12%] transition-transform duration-300 ease-out group-hover:scale-105"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-charcoal/40 text-xs">

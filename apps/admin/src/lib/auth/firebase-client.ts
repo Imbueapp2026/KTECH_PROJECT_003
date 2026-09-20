@@ -19,12 +19,12 @@ let cachedAuth: Auth | null = null;
 export function getFirebaseApp(): FirebaseApp | null {
   if (cachedApp) return cachedApp;
   
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDr29Tubj89sSz7SLd8DG2R47XGr9yxRiY";
-  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "aviratjewelers-27e34.firebaseapp.com";
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "aviratjewelers-27e34";
-  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "aviratjewelers-27e34.firebasestorage.app";
-  const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "381964018702";
-  const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:381964018702:web:eae4214135ab7d59d7085f";
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
+  const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
   if (getApps().length) {
     cachedApp = getApps()[0]!;

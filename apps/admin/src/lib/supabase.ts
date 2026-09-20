@@ -30,16 +30,11 @@ export function getServiceClient(): SupabaseClient {
   if (cachedService) return cachedService;
   try {
     const env = getEnv();
-    console.log('[Supabase] Creating service client with:', { 
-      url: env.supabaseUrl ? 'SET' : 'MISSING', 
-      serviceKey: env.supabaseServiceKey ? 'SET' : 'MISSING' 
-    });
     cachedService = createClient(
       env.supabaseUrl,
       env.supabaseServiceKey,
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
-    console.log('[Supabase] Service client created successfully');
     return cachedService;
   } catch (error) {
     console.error("[supabase-admin] Service client creation failed:", error);

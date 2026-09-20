@@ -2,6 +2,7 @@ import { AuthGate } from "@/components/shell/AuthGate";
 import { MobileTopbar } from "@/components/shell/MobileTopbar";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { DatabaseKeepAlive } from "@/components/DatabaseKeepAlive";
 
 export default function DashboardLayout({
   children,
@@ -18,6 +19,7 @@ export default function DashboardLayout({
             {children}
           </div>
         </div>
+        <DatabaseKeepAlive />
       </AuthGate>
     </ErrorBoundary>
   );

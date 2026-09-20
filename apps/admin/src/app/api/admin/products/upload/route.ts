@@ -26,7 +26,7 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export async function POST(req: NextRequest) {
   // Handle preflight request
-  const preflight = handlePreflight(req, { origin: '*' });
+  const preflight = handlePreflight(req);
   if (preflight) return preflight;
 
   if (!(await requireAdmin(req))) return unauthorized();
@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof RequestSizeError) {
       const errorResponse = NextResponse.json({ error: error.message }, { status: 413 });
-      return withCors(errorResponse, req, { origin: '*' });
+      return withCors(errorResponse, req);
     }
     const errorResponse = NextResponse.json({ error: "Failed to check request size" }, { status: 500 });
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
 
   let formData: FormData;
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     formData = await req.formData();
   } catch {
     const errorResponse = NextResponse.json({ error: "Invalid multipart form data" }, { status: 400 });
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
 
   const files = formData.getAll("files") as File[];
@@ -56,11 +56,11 @@ export async function POST(req: NextRequest) {
 
   if (!files.length) {
     const errorResponse = NextResponse.json({ error: "No files provided" }, { status: 400 });
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
   if (files.length > MAX_FILES) {
     const errorResponse = NextResponse.json({ error: `Maximum ${MAX_FILES} images allowed` }, { status: 400 });
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
 
   const supabase = getServiceClient();
@@ -76,10 +76,6 @@ export async function POST(req: NextRequest) {
       errors.push({ file: file.name, error: `File exceeds 5 MB limit.` });
       continue;
     }
-
-    // Note: Dimension validation should be done client-side before upload
-    // For server-side validation, consider using sharp or similar library in production
-    // Minimum: ${MIN_DIMENSION}x${MIN_DIMENSION}px, Maximum: ${MAX_DIMENSION}x${MAX_DIMENSION}px
 
     const ext = file.type.split("/")[1].replace("jpeg", "jpg");
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -104,11 +100,11 @@ export async function POST(req: NextRequest) {
   // Return partial success if some uploads failed
   if (errors.length > 0 && urls.length === 0) {
     const errorResponse = NextResponse.json({ error: "All uploads failed", details: errors }, { status: 400 });
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
   if (errors.length > 0) {
     const response = NextResponse.json({ urls, errors, partial: true }, { status: 207 }); // 207 Multi-Status
-    return withCors(response, req, { origin: '*' });
+    return withCors(response, req);
   }
 
   // If product_id is provided, update the product with uploaded images
@@ -146,7 +142,7 @@ export async function POST(req: NextRequest) {
   }
 
   const response = NextResponse.json({ urls });
-  return withCors(response, req, { origin: '*' });
+  return withCors(response, req);
 }
 
 /**
@@ -157,7 +153,7 @@ export async function POST(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   // Handle preflight request
-  const preflight = handlePreflight(req, { origin: '*' });
+  const preflight = handlePreflight(req);
   if (preflight) return preflight;
 
   if (!(await requireAdmin(req))) return unauthorized();
@@ -167,7 +163,7 @@ export async function DELETE(req: NextRequest) {
     body = await req.json();
   } catch {
     const errorResponse = NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
 
   const paths = Array.isArray(body.paths)
@@ -176,16 +172,16 @@ export async function DELETE(req: NextRequest) {
 
   if (!paths.length) {
     const errorResponse = NextResponse.json({ error: "No paths provided" }, { status: 400 });
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
 
   const supabase = getServiceClient();
   const { error } = await supabase.storage.from(BUCKET).remove(paths);
   if (error) {
     const errorResponse = serverError(error);
-    return withCors(errorResponse, req, { origin: '*' });
+    return withCors(errorResponse, req);
   }
 
   const response = NextResponse.json({ ok: true });
-  return withCors(response, req, { origin: '*' });
+  return withCors(response, req);
 }

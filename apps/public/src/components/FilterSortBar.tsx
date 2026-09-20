@@ -40,6 +40,7 @@ export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
               <input
                 type="text"
                 placeholder="Search products..."
+                aria-label="Search products"
                 value={filters.searchQuery}
                 onChange={(e) => handleFilterChange("searchQuery", e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-4 py-2 pl-10 pr-4 text-sm text-black focus:outline-none focus:border-[#C9A66B] focus:ring-1 focus:ring-[#C9A66B] transition-colors"
@@ -58,6 +59,8 @@ export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
           <div className="flex items-center space-x-2 md:space-x-4">
             <button
               onClick={() => setIsOpen(!isOpen)}
+              aria-expanded={isOpen}
+              aria-label="Toggle filters"
               className="flex items-center space-x-2 text-charcoal hover:text-gold transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,6 +73,7 @@ export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
               <label className="text-sm text-charcoal/70 whitespace-nowrap">Sort by:</label>
               <select
                 value={filters.sortBy}
+                aria-label="Sort products"
                 onChange={(e) => handleFilterChange("sortBy", e.target.value)}
                 className="border border-gray-200 rounded px-2 md:px-3 py-2 text-sm focus:outline-none focus:border-[#C9A66B] min-w-0"
               >
@@ -88,6 +92,7 @@ export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
               <label className="block text-sm font-medium text-charcoal mb-2">Metal Type</label>
               <select
                 value={filters.metalType}
+                aria-label="Filter by metal type"
                 onChange={(e) => handleFilterChange("metalType", e.target.value)}
                 className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-gold"
               >
@@ -102,6 +107,7 @@ export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
               <label className="block text-sm font-medium text-charcoal mb-2">Price Range</label>
               <select
                 value={filters.priceRange}
+                aria-label="Filter by price range"
                 onChange={(e) => handleFilterChange("priceRange", e.target.value)}
                 className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-gold"
               >
@@ -117,6 +123,7 @@ export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
               <label className="block text-sm font-medium text-charcoal mb-2">Occasion</label>
               <select
                 value={filters.occasion}
+                aria-label="Filter by occasion"
                 onChange={(e) => handleFilterChange("occasion", e.target.value)}
                 className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-gold"
               >

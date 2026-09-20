@@ -83,8 +83,6 @@ export async function PATCH(
     const { id } = await params;
     if (!asUuid(id)) return badRequest("invalid id");
     const body = (await parseJson<ProductPatch>(req)) ?? {};
-    
-    console.log('[API] PATCH /api/admin/products/[id] - Request:', { id, body });
 
   const patch: Record<string, unknown> = {};
   if (body.name !== undefined) {
@@ -212,8 +210,6 @@ export async function PATCH(
   if (body.festival_id !== undefined) {
     patch.festival_id = body.festival_id == null ? null : asUuid(body.festival_id);
   }
-  
-  console.log("Patch object:", patch);
   
   // Fetch current product to get existing values
   const supabase = getServiceClient();

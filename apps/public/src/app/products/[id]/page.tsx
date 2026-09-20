@@ -1,318 +1,175 @@
-"use client";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { formatPrice, formatWeight } from "@/lib/utils";
-import { InquiryCTA } from "@/components/InquiryCTA";
-import { ProductCard } from "@/components/ProductCard";
-import type { ProductJoined } from "shared-types";
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { getAnonClient } from '@/lib/supabase';
+import { ProductDetailView } from './ProductDetailView';
+import type { ProductJoined } from 'shared-types';
 
-export default function ProductDetailPage() {
-  const params = useParams<{ id: string }>();
-  const [isReady, setIsReady] = useState(false);
-  const [product, setProduct] = useState<ProductJoined | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<ProductJoined[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Material type is determined by the product, not user selection
-  const materialType = (product?.material_type as "gold" | "silver") || "gold";
-  
-  // Fetch product data
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (!params?.id) return;
-      
-      setIsReady(true);
-      setLoading(true);
-      
-      try {
-        // Fetch product details
-        const productResponse = await fetch(`/api/products/${params.id}`, {
-          cache: 'no-store'
-        });
-        if (productResponse.ok) {
-          const productResult = await productResponse.json();
-          if (productResult.data) {
-            setProduct(productResult.data);
-            
-            // Fetch related products from same category
-            if (productResult.data.category_id) {
-              const relatedResponse = await fetch(`/api/products?category_id=${productResult.data.category_id}&sort=created_at&order=desc&limit=8`, {
-                cache: 'no-store'
-              });
-              const relatedResult = await relatedResponse.json();
-              if (relatedResult.data) {
-                setRelatedProducts(relatedResult.data.filter((p: ProductJoined) => p.id !== params.id));
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch product:', error);
-      } finally {
-        setLoading(false);
-      }
+interface Props {
+  params: Promise<{ id: string }>;
+}
+
+async function getProduct(id: string): Promise<ProductJoined | null> {
+  const supabase = getAnonClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(`
+      id,
+      name,
+      description,
+      price,
+      image_urls,
+      availability,
+      hallmark_certified,
+      status,
+      category_id,
+      offer_id,
+      created_at,
+      updated_at,
+      purity_carats,
+      weight_grams,
+      net_weight_grams,
+      making_charge_percent,
+      making_charge_flat,
+      making_charge_type,
+      price_auto_calculated,
+      certifications,
+      gold_price_used,
+      material_type,
+      gst_percent,
+      festival_id,
+      categories (id, name, slug, icon_svg),
+      offers (id, label, description, is_active, start_date, end_date, discounts(discount_type, value))
+    `)
+    .eq("id", id)
+    .eq("status", "published")
+    .single();
+
+  if (error || !data) return null;
+
+  const category = Array.isArray(data.categories) ? data.categories[0] : data.categories;
+  const offerRaw = Array.isArray(data.offers) && data.offers.length > 0 ? (data.offers[0] as Record<string, unknown>) : null;
+  let offer = null;
+  if (offerRaw) {
+    const { discounts, ...restOffer } = offerRaw;
+    offer = {
+      ...restOffer,
+      discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
     };
-    
-    fetchProduct();
-  }, [params?.id]);
-
-  // Show loading state while fetching
-  if (!isReady || loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gold"></div>
-        </div>
-      </div>
-    );
   }
+
+  const { categories: _categories, offers: _offers, ...restData } = data as Record<string, unknown>;
+
+  return {
+    ...restData,
+    category: category || null,
+    offer,
+  } as unknown as ProductJoined;
+}
+
+async function getRelatedProducts(categoryId: string, currentProductId: string): Promise<ProductJoined[]> {
+  const supabase = getAnonClient();
+  const { data } = await supabase
+    .from("products")
+    .select(`
+      id,
+      name,
+      description,
+      price,
+      image_urls,
+      availability,
+      hallmark_certified,
+      status,
+      category_id,
+      offer_id,
+      created_at,
+      updated_at,
+      purity_carats,
+      weight_grams,
+      net_weight_grams,
+      making_charge_percent,
+      making_charge_flat,
+      making_charge_type,
+      price_auto_calculated,
+      certifications,
+      gold_price_used,
+      material_type,
+      gst_percent,
+      festival_id,
+      categories (id, name, slug, icon_svg),
+      offers (id, label, description, is_active, start_date, end_date, discounts(discount_type, value))
+    `)
+    .eq("category_id", categoryId)
+    .eq("status", "published")
+    .neq("id", currentProductId)
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  return (data || []).map((p) => {
+    const category = Array.isArray(p.categories) ? p.categories[0] : p.categories;
+    const offerRaw = Array.isArray(p.offers) && p.offers.length > 0 ? (p.offers[0] as Record<string, unknown>) : null;
+    let offer = null;
+    if (offerRaw) {
+      const { discounts, ...restOffer } = offerRaw;
+      offer = {
+        ...restOffer,
+        discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
+      };
+    }
+    const { categories: _categories, offers: _offers, ...restData } = p as Record<string, unknown>;
+    return {
+      ...restData,
+      category: category || null,
+      offer,
+    } as unknown as ProductJoined;
+  });
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProduct(id);
 
   if (!product) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
-          <Link
-            href="/collections"
-            className="text-charcoal hover:text-gold mb-4 inline-block"
-          >
-            ← Back to collections
-          </Link>
-          <p className="text-red-600 mt-4">Product not found</p>
-        </div>
-      </div>
-    );
+    return {
+      title: 'Product Not Found | Avirat Jewelers',
+      description: 'The requested jewelry item could not be found.',
+    };
   }
 
-  const discount = Array.isArray(product.offer?.discount)
-    ? product.offer.discount[0]
-    : product.offer?.discount || null;
-  const hasOffer = !!(product.offer && discount);
-  const imageUrl = product.image_urls?.[0] || null;
+  const title = `${product.name} | Avirat Jewelers`;
+  const description = product.description
+    ? product.description.slice(0, 160)
+    : `Explore ${product.name} crafted in ${product.material_type || 'precious metal'} by Avirat Jewelers.`;
+  const images = product.image_urls && product.image_urls.length > 0 ? [product.image_urls[0]] : [];
 
-  const calculateFinalPrice = () => {
-    if (!hasOffer || !discount) return product.price;
-    
-    if (discount.discount_type === "percentage") {
-      return Math.round(product.price * (1 - discount.value / 100));
-    } else {
-      return Math.max(0, product.price - discount.value);
-    }
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images,
+    },
   };
+}
 
-  const finalPrice = calculateFinalPrice();
+export default async function ProductDetailPage({ params }: Props) {
+  const { id } = await params;
+  const product = await getProduct(id);
 
-  return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-16 px-4 md:px-8">
-      <div className="max-w-4xl mx-auto">
-        <Link
-          href="/collections"
-          className="text-charcoal/80 hover:text-gold mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to collections
-        </Link>
+  if (!product) {
+    notFound();
+  }
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="grid md:grid-cols-2 gap-8 p-6 md:p-8">
-            {/* Image Section */}
-            <div className="aspect-square relative bg-gray-100 rounded-lg overflow-hidden">
-              {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                  <span className="text-sm">No image available</span>
-                </div>
-              )}
-              {hasOffer && discount && (
-                <div className="absolute top-4 right-4 bg-gold text-white px-3 py-1 rounded text-sm font-semibold">
-                  {discount.discount_type === "percentage"
-                    ? `${discount.value}% OFF`
-                    : `₹${discount.value} OFF`}
-                </div>
-              )}
-              {product.hallmark_certified && (
-                <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded text-xs font-semibold">
-                  Hallmark Certified
-                </div>
-              )}
-            </div>
+  const relatedProducts = product.category_id
+    ? await getRelatedProducts(product.category_id, product.id)
+    : [];
 
-            {/* Details Section */}
-            <div className="flex flex-col">
-              <div className="mb-4">
-                <p className="text-sm text-charcoal/70 uppercase tracking-wide mb-2">
-                  {product.category?.name || "Uncategorized"}
-                </p>
-                <h1 className="text-2xl md:text-3xl font-serif font-bold text-charcoal mb-2">
-                  {product.name}
-                </h1>
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      product.availability === "available"
-                        ? "bg-green-100 text-green-800"
-                        : product.availability === "made_to_order"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {product.availability === "available"
-                      ? "Available"
-                      : product.availability === "made_to_order"
-                      ? "Made to Order"
-                      : "Sold Out"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Material Type Display */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-charcoal/70 mb-2">Material Type</p>
-                <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-lg font-medium ${
-                    materialType === "gold"
-                      ? "bg-gold text-white"
-                      : "bg-gray-600 text-white"
-                  }`}>
-                    {materialType === "gold" ? "Gold" : "Silver"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-charcoal/70 mb-1">Price ({materialType === "gold" ? "Gold" : "Silver"})</p>
-                <div className="flex items-baseline gap-2">
-                  {hasOffer && discount ? (
-                    <>
-                      <span className="text-3xl font-bold text-charcoal">
-                        {formatPrice(finalPrice)}
-                      </span>
-                      <span className="text-lg text-charcoal/40 line-through">
-                        {formatPrice(product.price)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-3xl font-bold text-charcoal">
-                      {formatPrice(product.price)}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-charcoal/50 mt-1">
-                  Includes {product.gst_percent || 5}% GST
-                </p>
-              </div>
-
-              {/* Trust & Craft Story Banner - Breitling/Tanishq inspired luxury styling */}
-              <div className="bg-[#FAF8F5] border-l-4 border-gold p-5 mb-6 rounded-r-lg shadow-2xs">
-                <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-5 h-5 text-gold" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M2.166 4.9L10 1.154l7.834 3.746A1 1 0 0 1 18.5 5.8v6.2c0 3.327-2.316 6.136-5.568 6.845L10 19.845l-2.932-1.0A8.002 8.002 0 0 1 1.5 12V5.8a1 1 0 0 1 .666-.9M10 3.155L3.5 6.26v5.74a6.002 6.002 0 0 0 4.195 5.717L10 18.497l2.305-.78A6.002 6.002 0 0 0 16.5 12V6.26z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-xs uppercase tracking-wider font-semibold text-charcoal/80 font-serif">Purity & Craftsmanship Guarantee</p>
-                </div>
-                
-                {product.hallmark_certified && (
-                  <div className="mb-4 bg-white/60 border border-gold/20 p-3 rounded-md flex items-start gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block shrink-0 mt-1 shadow-sm" />
-                    <div>
-                      <p className="text-xs font-semibold text-charcoal font-serif">Certified BIS Hallmark Assured</p>
-                      <p className="text-[11px] text-charcoal/70 leading-relaxed">This precious piece is certified by the Bureau of Indian Standards, assuring the exact karats and purity defined below.</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm pt-3 border-t border-charcoal/5">
-                  {materialType === "gold" && product.purity_carats && (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] uppercase tracking-wide text-charcoal/60">Purity Scale</span>
-                      <span className="font-serif font-medium text-charcoal">{product.purity_carats} Karat Fine Gold</span>
-                    </div>
-                  )}
-                  {materialType === "silver" && (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] uppercase tracking-wide text-charcoal/60">Composition</span>
-                      <span className="font-serif font-medium text-charcoal">925 Sterling Silver</span>
-                    </div>
-                  )}
-                  {product.weight_grams && (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] uppercase tracking-wide text-charcoal/60">
-                        {product.net_weight_grams ? "Gross Weight" : "Weight"}
-                      </span>
-                      <span className="font-serif font-medium text-charcoal">{formatWeight(product.weight_grams)}</span>
-                    </div>
-                  )}
-                  {product.net_weight_grams && (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] uppercase tracking-wide text-charcoal/60">Net Weight</span>
-                      <span className="font-serif font-medium text-charcoal">{formatWeight(product.net_weight_grams)}</span>
-                    </div>
-                  )}
-                  {product.certifications && product.certifications.length > 0 && (
-                    <div className="flex flex-col gap-0.5 col-span-2">
-                      <span className="text-[10px] uppercase tracking-wide text-charcoal/60">Additional Credentials</span>
-                      <span className="font-serif font-medium text-charcoal">{Array.isArray(product.certifications) ? product.certifications.join(', ') : product.certifications}</span>
-                    </div>
-                  )}
-                  {(product.making_charge_type === 'percent' && product.making_charge_percent) && (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] uppercase tracking-wide text-charcoal/60">Making Charges</span>
-                      <span className="font-serif font-medium text-charcoal">{product.making_charge_percent}%</span>
-                    </div>
-                  )}
-                  {(product.making_charge_type === 'flat' && product.making_charge_flat) && (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[10px] uppercase tracking-wide text-charcoal/60">Making Charges</span>
-                      <span className="font-serif font-medium text-charcoal">{formatPrice(product.making_charge_flat)}</span>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] uppercase tracking-wide text-charcoal/60">GST (Tax)</span>
-                    <span className="font-serif font-medium text-charcoal">{product.gst_percent || 5}% Tax Included</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              {product.description && (
-                <div className="mb-6">
-                  <p className="text-sm text-charcoal/70 mb-2">Description</p>
-                  <p className="text-charcoal leading-relaxed whitespace-pre-wrap">
-                    {product.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Inquiry CTA */}
-              <InquiryCTA productId={product.id} buttonText="Ask About This Piece" />
-            </div>
-          </div>
-        </div>
-
-        {/* You may also like section */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-serif text-charcoal mb-6">You may also like</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <ProductCard key={relatedProduct.id} product={relatedProduct} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return <ProductDetailView product={product} relatedProducts={relatedProducts} />;
 }

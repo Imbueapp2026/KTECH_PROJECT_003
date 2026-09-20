@@ -33,19 +33,31 @@ function isOriginAllowed(origin: string, allowed: string | string[] | ((origin: 
   return false;
 }
 
+const getTargetOrigin = (): string | string[] => {
+  const envOrigin = process.env.ADMIN_ORIGIN || process.env.NEXT_PUBLIC_ADMIN_URL;
+  if (envOrigin) {
+    return envOrigin.split(',').map(s => s.trim());
+  }
+  // In development, allow localhost ports
+  if (process.env.NODE_ENV === 'development') {
+    return ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
+  }
+  return [];
+};
+
 export function cors(options: CorsOptions = {}) {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  const allowedOrigins = opts.origin || '*';
+  const allowedOrigins = opts.origin || getTargetOrigin();
 
   return (req: Request, response?: NextResponse) => {
-    const origin = req.headers.get('origin') || '*';
+    const origin = req.headers.get('origin');
     
     // Set Access-Control-Allow-Origin
     if (allowedOrigins === '*') {
       if (response) {
         response.headers.set('Access-Control-Allow-Origin', '*');
       }
-    } else {
+    } else if (origin) {
       if (isOriginAllowed(origin, allowedOrigins)) {
         if (response) {
           response.headers.set('Access-Control-Allow-Origin', origin);

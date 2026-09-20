@@ -63,25 +63,23 @@ export async function GET(
     }
 
     // Transform response to match expected type
-    const transformedData: Record<string, unknown> = {
-      ...data,
-      category: Array.isArray(data.categories) ? data.categories[0] : data.categories || null,
-    };
-    
-    // Handle offer with nested discount
-    if (data.offers && Array.isArray(data.offers) && data.offers.length > 0) {
-      const offer = data.offers[0];
-      transformedData.offer = {
-        ...offer,
-        discount: Array.isArray(offer.discounts) && offer.discounts.length > 0 ? offer.discounts[0] : null
+    const offerRaw = Array.isArray(data.offers) && data.offers.length > 0 ? (data.offers[0] as Record<string, unknown>) : null;
+    let offer = null;
+    if (offerRaw) {
+      const { discounts, ...restOffer } = offerRaw;
+      offer = {
+        ...restOffer,
+        discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
       };
-      delete transformedData.offer.discounts;
-    } else {
-      transformedData.offer = null;
     }
-    
-    delete transformedData.categories;
-    delete transformedData.offers;
+
+    const { categories: _categories, offers: _offers, ...restData } = data as Record<string, unknown>;
+
+    const transformedData = {
+      ...restData,
+      category: Array.isArray(data.categories) ? data.categories[0] : data.categories || null,
+      offer,
+    };
 
     const response = Response.json({ data: transformedData }, {
       headers: { 'Cache-Control': 'no-store' }

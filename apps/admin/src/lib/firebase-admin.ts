@@ -29,12 +29,6 @@ function getFirebaseApp(): App {
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
   
-  console.log('[Firebase] Initializing with:', { 
-    projectId: projectId ? 'SET' : 'MISSING', 
-    clientEmail: clientEmail ? 'SET' : 'MISSING',
-    privateKey: privateKey ? 'SET' : 'MISSING' 
-  });
-  
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error(
       "Missing Firebase admin environment variables in .env. " +
@@ -44,9 +38,8 @@ function getFirebaseApp(): App {
 
   // Format private key properly for OpenSSL / Node crypto:
   let formattedKey = privateKey || "";
-  // Unescape literal \n strings if present
   formattedKey = formattedKey.replace(/\\n/g, "\n");
-  
+
   try {
     app = initializeApp({
       credential: cert({
@@ -55,7 +48,6 @@ function getFirebaseApp(): App {
         privateKey: formattedKey,
       }),
     });
-    console.log('[Firebase] App initialized successfully');
   } catch (error) {
     console.error('[Firebase] Initialization failed:', error);
     throw error;

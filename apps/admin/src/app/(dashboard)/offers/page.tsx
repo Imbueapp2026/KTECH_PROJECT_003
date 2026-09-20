@@ -114,12 +114,14 @@ export default function OffersPage() {
 
   if (offers === null || products === null) {
     return (
-      <div className="p-5 md:p-8 max-w-6xl flex flex-col gap-6">
+      <div className="p-5 md:p-8 max-w-6xl flex flex-col gap-4">
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-[var(--color-ink)]">
           Offers and Discount
         </h1>
-        <Skeleton className="h-28" />
-        <ProductGridSkeleton count={4} />
+        <div className="flex flex-col gap-6 mt-4">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </div>
       </div>
     );
   }

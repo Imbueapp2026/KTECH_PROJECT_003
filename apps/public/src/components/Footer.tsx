@@ -21,22 +21,22 @@ export function Footer() {
             <h3 className="text-lg font-serif font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-white/70 hover:text-gold transition-colors">
+                <Link href="/" aria-label="Go to Home page" className="text-white/70 hover:text-gold transition-colors">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/collections" className="text-white/70 hover:text-gold transition-colors">
+                <Link href="/collections" aria-label="Go to Collections page" className="text-white/70 hover:text-gold transition-colors">
                   Collections
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-white/70 hover:text-gold transition-colors">
+                <Link href="/about" aria-label="Go to About Us page" className="text-white/70 hover:text-gold transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-white/70 hover:text-gold transition-colors">
+                <Link href="/contact" aria-label="Go to Contact page" className="text-white/70 hover:text-gold transition-colors">
                   Contact
                 </Link>
               </li>

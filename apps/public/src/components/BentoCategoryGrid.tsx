@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import type { ProductJoined } from "shared-types";
 
 interface CategoryTile {
@@ -61,10 +62,12 @@ export function BentoCategoryGrid({ products }: BentoCategoryGridProps) {
           >
             {categories[0].representativeImage ? (
               <div className="absolute inset-0">
-                <img
+                <Image
                   src={categories[0].representativeImage}
                   alt={categories[0].name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 40vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
               </div>
@@ -87,10 +90,12 @@ export function BentoCategoryGrid({ products }: BentoCategoryGridProps) {
             >
               {category.representativeImage ? (
                 <div className="absolute inset-0">
-                  <img
+                  <Image
                     src={category.representativeImage}
                     alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    sizes="(max-width: 768px) 50vw, 20vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                 </div>

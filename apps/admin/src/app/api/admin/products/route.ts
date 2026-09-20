@@ -119,26 +119,13 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    console.log('[API] POST /api/admin/products - Starting request processing');
-    console.log('[API] Request headers:', Object.fromEntries(req.headers.entries()));
-    
     if (!(await requireAdmin(req))) return unauthorized();
     
     const body = (await parseJson<ProductBody>(req)) ?? {};
     
-    // Log the incoming request payload for debugging
-    console.log('[API] POST /api/admin/products - Request body:', JSON.stringify(body, null, 2));
-    console.log('[API] POST /api/admin/products - Body type:', typeof body);
-    console.log('[API] POST /api/admin/products - Body keys:', Object.keys(body));
-    
     const name = asString(body.name, 200);
-    console.log('[API] Parsed name:', name);
-    
     const category_id = asUuid(body.category_id);
-    console.log('[API] Parsed category_id:', category_id);
-    
     const description = asString(body.description, 5000);
-    console.log('[API] Parsed description:', description ? 'SET' : 'NULL');
     
     const hallmark_certified = asBool(body.hallmark_certified) ?? false;
     const availability = (asEnum<Availability>(body.availability, AVAILABILITY) ??
@@ -150,8 +137,6 @@ export async function POST(req: Request) {
           .filter((u): u is string => typeof u === "string" && u.length > 0)
           .slice(0, 4)
       : [];
-    
-    console.log('[API] Basic validation passed');
 
     // Gold pricing fields - required for gold, optional for silver
     // Accept both string and number for purity_carats
@@ -159,7 +144,6 @@ export async function POST(req: Request) {
     
     // Only validate purity_carats if material_type is gold
     const material_type = asEnum(body.material_type, ["gold", "silver"]) ?? "gold";
-    console.log('[API] Parsed material_type:', material_type);
     
     const directPrice = body.price !== undefined && body.price !== null && body.price !== ""
       ? asNumber(body.price)
@@ -167,7 +151,6 @@ export async function POST(req: Request) {
     if (directPrice != null && directPrice <= 0) return badRequest("price must be positive");
 
     if (material_type === 'gold' && directPrice == null) {
-      console.log('[API] Processing gold material - validating purity_carats');
       let purity_carats_str: string | undefined;
       if (typeof body.purity_carats === 'number') {
         purity_carats_str = body.purity_carats.toString();
@@ -178,14 +161,10 @@ export async function POST(req: Request) {
         purity_carats_str = enumResult || undefined;
       }
       
-      console.log('[API] Parsed purity_carats_str:', purity_carats_str);
-      
       if (!purity_carats_str || !PURITY_CARATS.includes(purity_carats_str as (typeof PURITY_CARATS)[number])) {
-        console.error('[API] Invalid purity_carats for gold material:', body.purity_carats);
         return badRequest("purity_carats is required for gold items and must be one of: 24, 22, 18, 14, 9");
       }
       purity_carats = parseInt(purity_carats_str, 10) as 24 | 22 | 18 | 14 | 9;
-      console.log('[API] Final purity_carats:', purity_carats);
     } else if (material_type === 'gold' && body.purity_carats) {
       const purity_carats_str = body.purity_carats.toString();
       if (PURITY_CARATS.includes(purity_carats_str as (typeof PURITY_CARATS)[number])) {
@@ -193,19 +172,16 @@ export async function POST(req: Request) {
       }
     }
     const weight_grams = asNumber(body.weight_grams);
-    console.log('[API] Parsed weight_grams:', weight_grams);
     if (directPrice == null && (weight_grams == null || weight_grams <= 0)) return badRequest("weight_grams is required and must be positive");
     
     const net_weight_grams = body.net_weight_grams !== undefined && body.net_weight_grams !== null && body.net_weight_grams !== ""
       ? asNumber(body.net_weight_grams)
       : null;
-    console.log('[API] Parsed net_weight_grams:', net_weight_grams);
     if (net_weight_grams != null && net_weight_grams <= 0) return badRequest("net_weight_grams must be positive");
     
     const making_charge_percent = asNumber(body.making_charge_percent);
     const making_charge_flat = asNumber(body.making_charge_flat);
     const making_charge_type = asEnum(body.making_charge_type, MAKING_CHARGE_TYPE);
-    console.log('[API] Parsed making_charge_type:', making_charge_type);
     if (directPrice == null && !making_charge_type) return badRequest("making_charge_type is required");
     
     // certifications column is a Postgres array — convert comma-separated string to array
@@ -328,8 +304,6 @@ export async function POST(req: Request) {
       insertData.festival_id = festival_id;
     }
 
-    console.log('[API] Insert data:', JSON.stringify(insertData, null, 2));
-
     let result = await supabase
       .from("products")
       .insert(insertData)
@@ -356,12 +330,10 @@ export async function POST(req: Request) {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        insertData: insertData,
       });
       return serverError(error);
     }
     
-    console.log('[API] Product created successfully:', data);
     return Response.json({ data }, { status: 201 });
   } catch (error) {
     console.error('[API] POST /api/admin/products CATCH BLOCK ERROR:', error);

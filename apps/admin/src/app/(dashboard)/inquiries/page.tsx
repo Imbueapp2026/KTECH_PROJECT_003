@@ -4,6 +4,7 @@ import { api, ApiError } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import type { InquiryStatus, InquiryJoined } from "@/lib/data/types";
 
@@ -103,9 +104,10 @@ export default function InquiriesPage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="bg-[var(--color-primary)] border border-dashed border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] py-16 text-center">
-          <p className="text-sm text-[var(--color-tertiary)]">No inquiries yet.</p>
-        </div>
+        <EmptyState 
+          title="No inquiries yet" 
+          description="Customer messages and product inquiries will appear here." 
+        />
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((row) => {

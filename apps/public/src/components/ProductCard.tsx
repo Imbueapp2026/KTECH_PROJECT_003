@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import type { ProductJoined } from "shared-types";
 
@@ -24,12 +25,12 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Image container with off-white background */}
         <div className="relative aspect-square bg-[#FAF8F5] overflow-hidden rounded-sm">
           {imageUrl ? (
-            <img
+            <Image
               src={imageUrl}
               alt={product.name}
-              className="w-full h-full object-contain p-[12%] transition-transform duration-300 ease-out group-hover:scale-105"
-              loading="lazy"
-              decoding="async"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-contain p-[12%] transition-transform duration-300 ease-out group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-charcoal/40 text-xs">

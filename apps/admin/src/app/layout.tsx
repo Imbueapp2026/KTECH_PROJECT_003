@@ -13,6 +13,10 @@ const martianMono = Martian_Mono({
 export const metadata: Metadata = {
   title: "Avirat Admin",
   description: "Admin console for the Avirat Jewelers catalog.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
