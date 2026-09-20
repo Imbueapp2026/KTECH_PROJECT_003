@@ -4,7 +4,7 @@ import Link from "next/link";
 import { formatPrice, formatWeight } from "@/lib/utils";
 import { InquiryCTA } from "@/components/InquiryCTA";
 import { ProductCard } from "@/components/ProductCard";
-import type { ProductJoined } from "shared-types";
+import type { ProductJoined } from "@/types";
 
 interface ProductDetailViewProps {
   product: ProductJoined;

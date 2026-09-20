@@ -7,7 +7,7 @@ import Link from "next/link";
 import { CategoryIntro } from "@/components/CategoryIntro";
 import { FilterSortBar, FilterState } from "@/components/FilterSortBar";
 import { ProductCard } from "@/components/ProductCard";
-import type { ProductJoined } from "shared-types";
+import type { ProductJoined } from "@/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -16,7 +16,7 @@ export default function CategoryPage() {
   const slug = params?.slug || "";
   
   const { data: categoriesResult } = useSWR('/api/categories', fetcher);
-  const category = categoriesResult?.data?.find((cat: any) => cat.slug === slug);
+  const category = categoriesResult?.data?.find((cat: { id: string; name: string; slug: string }) => cat.slug === slug);
   const categoryId = category?.id;
   const categoryName = category?.name || "Collection";
   
@@ -35,7 +35,7 @@ export default function CategoryPage() {
 
     // Apply metal type filter
     if (filters.metalType) {
-      filtered = filtered.filter((p) => (p.material_type || "gold").toLowerCase() === filters.metalType.toLowerCase());
+      filtered = filtered.filter((p) => (p.material_type || "gold").toLowerCase() === filters.metalType?.toLowerCase());
     }
 
     // Apply search filter

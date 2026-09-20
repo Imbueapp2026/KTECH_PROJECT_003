@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import type { ProductJoined } from "shared-types";
+import type { ProductJoined } from "@/types";
 
 interface CategoryTile {
   name: string;

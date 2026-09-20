@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { NewArrivalsStrip } from "./NewArrivalsStrip";
 import { BentoCategoryGrid } from "./BentoCategoryGrid";
-import type { ProductJoined } from "shared-types";
+import type { ProductJoined } from "@/types";
 
 export function HomeProductsSection() {
   const [products, setProducts] = useState<ProductJoined[]>([]);

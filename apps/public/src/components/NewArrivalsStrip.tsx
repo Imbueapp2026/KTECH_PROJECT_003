@@ -1,7 +1,7 @@
 "use client";
 
 import { ProductCard } from "./ProductCard";
-import type { ProductJoined } from "shared-types";
+import type { ProductJoined } from "@/types";
 
 interface NewArrivalsStripProps {
   products: ProductJoined[];

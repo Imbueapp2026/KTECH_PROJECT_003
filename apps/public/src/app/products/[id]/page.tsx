@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAnonClient } from '@/lib/supabase';
 import { ProductDetailView } from './ProductDetailView';
-import type { ProductJoined } from 'shared-types';
+import type { ProductJoined } from '@/types';
 
 interface Props {
   params: Promise<{ id: string }>;

@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { CategoryIntro } from "@/components/CategoryIntro";
 import { FilterSortBar, FilterState } from "@/components/FilterSortBar";
 import { ProductCard } from "@/components/ProductCard";
-import type { ProductJoined } from "shared-types";
+import type { ProductJoined } from "@/types";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -21,7 +21,7 @@ export default function CollectionsPage() {
 
     // Apply metal type filter
     if (filters.metalType) {
-      filtered = filtered.filter((p) => (p.material_type || "gold").toLowerCase() === filters.metalType.toLowerCase());
+      filtered = filtered.filter((p) => (p.material_type || "gold").toLowerCase() === filters.metalType?.toLowerCase());
     }
 
     // Apply search filter

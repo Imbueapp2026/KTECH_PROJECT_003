@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { formatPrice } from "@/lib/utils";
-import type { ProductJoined, Festival } from "shared-types";
+import type { ProductJoined, Festival } from "@/types";
 
 export function FeaturedFestivalSection() {
   const [festivalProducts, setFestivalProducts] = useState<ProductJoined[]>([]);

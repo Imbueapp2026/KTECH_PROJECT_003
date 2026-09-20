@@ -36,9 +36,7 @@ function getFirebaseApp(): App {
     );
   }
 
-  // Format private key properly for OpenSSL / Node crypto:
-  let formattedKey = privateKey || "";
-  formattedKey = formattedKey.replace(/\\n/g, "\n");
+  const formattedKey = privateKey.replace(/\\n/g, "\n");
 
   try {
     app = initializeApp({

@@ -7,11 +7,11 @@ interface FilterSortBarProps {
 }
 
 export interface FilterState {
-  metalType: string;
-  priceRange: string;
-  occasion: string;
-  sortBy: string;
-  searchQuery: string;
+  metalType?: string;
+  priceRange?: string;
+  occasion?: string;
+  sortBy?: string;
+  searchQuery?: string;
 }
 
 export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
