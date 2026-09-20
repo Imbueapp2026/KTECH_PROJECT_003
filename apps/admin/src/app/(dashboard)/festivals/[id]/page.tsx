@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
@@ -23,10 +23,9 @@ export default function FestivalDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'manual' | 'offer'>('manual');
 
-  const loadData = useCallback(async () => {
+  async function loadData() {
     if (!params.id) return;
     try {
-      setLoading(true);
       const [festivalRes, productsRes, offersRes] = await Promise.all([
         api.get<{ data: Festival }>(`/api/admin/festivals/${params.id}`),
         api.get<{ data: FestivalProduct[] }>(`/api/admin/festivals/${params.id}/products`),
@@ -36,7 +35,6 @@ export default function FestivalDetailPage() {
       setFestival(festivalRes.data);
       setProducts(productsRes.data || []);
       
-      // Filter products that have offers but are not in this festival
       const offerProducts = offersRes.data?.filter(
         (p) => p.offer_id && p.festival_id !== params.id
       ) || [];
@@ -46,11 +44,36 @@ export default function FestivalDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [params.id]);
+  }
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    let active = true;
+    if (!params.id) return;
+    async function load() {
+      try {
+        const [festivalRes, productsRes, offersRes] = await Promise.all([
+          api.get<{ data: Festival }>(`/api/admin/festivals/${params.id}`),
+          api.get<{ data: FestivalProduct[] }>(`/api/admin/festivals/${params.id}/products`),
+          api.get<{ data: ProductJoined[] }>("/api/admin/products"),
+        ]);
+        if (!active) return;
+        setFestival(festivalRes.data);
+        setProducts(productsRes.data || []);
+        const offerProducts = offersRes.data?.filter(
+          (p) => p.offer_id && p.festival_id !== params.id
+        ) || [];
+        setOfferProducts(offerProducts);
+      } catch (err) {
+        if (active) setError(err instanceof ApiError ? err.message : "Failed to load festival data.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [params.id]);
 
   async function addProductToFestival(productId: string) {
     try {

@@ -13,7 +13,7 @@
  */
 import { requireAdmin } from "@/lib/firebase-admin";
 import { getServiceClient } from "@/lib/supabase";
-import { unauthorized, serverError, badRequest } from "@/lib/http";
+import { unauthorized, serverError } from "@/lib/http";
 import { checkRequestSize, RequestSizeError } from "@/lib/request-limits";
 import { handlePreflight, withCors } from "@/lib/cors";
 import { NextRequest, NextResponse } from "next/server";
@@ -23,8 +23,6 @@ const BUCKET = "product-images";
 const MAX_FILES = 4;
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MIN_DIMENSION = 300; // Minimum width/height in pixels
-const MAX_DIMENSION = 4096; // Maximum width/height in pixels
 
 export async function POST(req: NextRequest) {
   // Handle preflight request

@@ -5,9 +5,6 @@
  */
 import { getServiceClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
-
 async function fetchsilverPriceFromAPI(): Promise<{ price: number; source: string; source_url: string } | null> {
   try {
     // Using metal-api.com for silver prices

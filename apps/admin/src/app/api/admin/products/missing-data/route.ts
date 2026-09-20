@@ -30,22 +30,22 @@ export async function GET(req: Request) {
     }
 
     // Process each product to identify which fields are missing
-    const productsWithMissingFields = (data || []).map((product: any) => {
+    const productsWithMissingFields = (data || []).map((product: Record<string, unknown>) => {
       const missingFields: string[] = [];
 
       if (!product.purity_carats) {
         missingFields.push("purity_carats");
       }
 
-      if (!product.weight_grams || product.weight_grams <= 0) {
+      if (!product.weight_grams || (product.weight_grams as number) <= 0) {
         missingFields.push("weight_grams");
       }
 
       if (!product.making_charge_type) {
         missingFields.push("making_charge_type");
-      } else if (product.making_charge_type === "percent" && (!product.making_charge_percent || product.making_charge_percent < 0)) {
+      } else if (product.making_charge_type === "percent" && (!product.making_charge_percent || (product.making_charge_percent as number) < 0)) {
         missingFields.push("making_charge_percent");
-      } else if (product.making_charge_type === "flat" && (!product.making_charge_flat || product.making_charge_flat < 0)) {
+      } else if (product.making_charge_type === "flat" && (!product.making_charge_flat || (product.making_charge_flat as number) < 0)) {
         missingFields.push("making_charge_flat");
       }
 
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         name: product.name,
         missingFields,
       };
-    }).filter((product: any) => product.missingFields.length > 0);
+    }).filter((product: { missingFields: string[] }) => product.missingFields.length > 0);
 
     return NextResponse.json({
       count: productsWithMissingFields.length,

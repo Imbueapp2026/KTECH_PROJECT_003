@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
@@ -28,30 +28,38 @@ export default function FestivalEditPage() {
     is_active: false,
   });
 
-  const loadFestival = useCallback(async () => {
-    if (!params.id) return;
-    try {
-      const res = await api.get<{ data: Festival }>(`/api/admin/festivals/${params.id}`);
-      setFestival(res.data);
-      setFormData({
-        name: res.data.name,
-        description: res.data.description || "",
-        image_url: res.data.image_url || "",
-        date: res.data.date || "",
-        start_date: res.data.start_date || "",
-        end_date: res.data.end_date || "",
-        is_active: res.data.is_active,
-      });
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load festival.");
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id]);
-
   useEffect(() => {
-    void loadFestival();
-  }, [loadFestival]);
+    if (!params.id) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await api.get<{ data: Festival }>(`/api/admin/festivals/${params.id}`);
+        if (cancelled) return;
+        setFestival(res.data);
+        setFormData({
+          name: res.data.name,
+          description: res.data.description || "",
+          image_url: res.data.image_url || "",
+          date: res.data.date || "",
+          start_date: res.data.start_date || "",
+          end_date: res.data.end_date || "",
+          is_active: res.data.is_active,
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : "Failed to load festival.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

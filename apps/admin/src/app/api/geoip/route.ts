@@ -7,14 +7,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Simple in-memory cache (for production, consider using Redis or similar)
-const geoipCache = new Map<string, { data: any; timestamp: number }>();
+const geoipCache = new Map<string, { data: Record<string, unknown>; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 function getCacheKey(ip: string): string {
   return `geoip:${ip}`;
 }
 
-function getCachedResponse(ip: string): any | null {
+function getCachedResponse(ip: string): Record<string, unknown> | null {
   const key = getCacheKey(ip);
   const cached = geoipCache.get(key);
   
@@ -30,7 +30,7 @@ function getCachedResponse(ip: string): any | null {
   return null;
 }
 
-function setCachedResponse(ip: string, data: any): void {
+function setCachedResponse(ip: string, data: Record<string, unknown>): void {
   const key = getCacheKey(ip);
   geoipCache.set(key, { data, timestamp: Date.now() });
   

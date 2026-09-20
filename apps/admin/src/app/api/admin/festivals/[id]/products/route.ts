@@ -58,7 +58,7 @@ export async function GET(
   }
 
   // Transform response to match expected type and add source flag
-  const transformedData = data?.map((item: any) => ({
+  const transformedData = data?.map((item: Record<string, unknown>) => ({
     ...item,
     category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
     categories: undefined,

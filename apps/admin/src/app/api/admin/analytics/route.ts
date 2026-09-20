@@ -5,7 +5,7 @@
  */
 import { requireAdmin } from "@/lib/firebase-admin";
 import { getServiceClient } from "@/lib/supabase";
-import { unauthorized, serverError, parsePagination } from "@/lib/http";
+import { unauthorized, serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
 import { NextRequest, NextResponse } from "next/server";
 

@@ -48,7 +48,7 @@ async function request<T>(
     body = ct.includes("application/json")
       ? await res.json()
       : await res.text();
-  } catch (error) {
+  } catch {
     body = null;
   }
 

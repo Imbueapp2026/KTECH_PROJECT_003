@@ -78,7 +78,7 @@ export async function PATCH(
     await supabase.from("festivals").update({ is_active: false }).neq("id", id);
   }
 
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
   if (name != null) updateData.name = name;
   if (description != null) updateData.description = description;
   if (image_url != null) updateData.image_url = image_url;

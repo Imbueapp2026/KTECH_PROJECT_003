@@ -16,12 +16,6 @@ import { getAuth, type Auth } from "firebase/auth";
 let cachedApp: FirebaseApp | null = null;
 let cachedAuth: Auth | null = null;
 
-function readEnv(name: string): string | null {
-  const v = process.env[name];
-  console.log(`[readEnv] ${name}:`, v ? `${v.substring(0, 10)}...` : "null");
-  return typeof v === "string" && v.length > 0 ? v : null;
-}
-
 export function getFirebaseApp(): FirebaseApp | null {
   if (cachedApp) return cachedApp;
   
