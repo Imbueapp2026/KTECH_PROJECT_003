@@ -15,9 +15,9 @@ interface MetalPriceData {
   recalculation_error?: string | null;
   previous_price?: number | null;
   price_decrease_percent?: number | null;
-  recalculation_result?: any;
+  recalculation_result?: Record<string, unknown>;
   skipped_count?: number;
-  skipped_products?: any[];
+  skipped_products?: Array<{ id: string; name?: string; reason?: string }>;
   updated_count?: number;
 }
 
@@ -352,7 +352,7 @@ export default function DashboardPage() {
               </Badge>
             </div>
           ) : (
-            <p className="text-sm text-[var(--color-tertiary)]">No gold price set. Click "Fetch Live Price" or use manual override.</p>
+            <p className="text-sm text-[var(--color-tertiary)]">No gold price set. Click &quot;Fetch Live Price&quot; or use manual override.</p>
           )}
         </div>
 
@@ -413,7 +413,7 @@ export default function DashboardPage() {
               </Badge>
             </div>
           ) : (
-            <p className="text-sm text-[var(--color-tertiary)]">No silver price set. Click "Fetch Live Price" or use manual override.</p>
+            <p className="text-sm text-[var(--color-tertiary)]">No silver price set. Click &quot;Fetch Live Price&quot; or use manual override.</p>
           )}
         </div>
       </div>

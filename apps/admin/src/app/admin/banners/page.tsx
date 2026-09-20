@@ -145,7 +145,7 @@ export default function BannersPage() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Limited Products</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Mark products as "Limited" to appear in the banner. Higher priority values appear first.
+            Mark products as &quot;Limited&quot; to appear in the banner. Higher priority values appear first.
           </p>
           {products.map((product) => (
             <div key={product.id} className="bg-white border rounded-lg p-4 flex items-center gap-4">
@@ -200,7 +200,7 @@ export default function BannersPage() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Featured Categories</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Mark categories as "Featured" to appear in the banner. Higher priority values appear first.
+            Mark categories as &quot;Featured&quot; to appear in the banner. Higher priority values appear first.
           </p>
           {categories.map((category) => (
             <div key={category.id} className="bg-white border rounded-lg p-4 flex items-center gap-4">
