@@ -1,18 +1,52 @@
 import Image from "next/image";
+import { getAnonClient } from "@/lib/supabase";
 
 export const metadata = {
   title: "About Us | Avirat Jewelers",
   description: "Learn about the heritage, master craftsmanship, and timeless tradition behind Avirat Jewelers in Gujarat.",
 };
 
-export default function AboutPage() {
+async function getFeaturedProducts() {
+  try {
+    const supabase = getAnonClient();
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, image_urls')
+      .eq('status', 'published')
+      .neq('availability', 'sold')
+      .limit(6);
+    
+    if (error) {
+      console.error('Supabase error fetching products:', error);
+      return [];
+    }
+    
+    console.log('Fetched products for About page:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    return [];
+  }
+}
+
+export default async function AboutPage() {
+  const products = await getFeaturedProducts();
+  
+  // Get product images to use in About Us page
+  const heroImage = products[0]?.image_urls?.[0] || 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?w=1920&h=1080&fit=crop';
+  const heritageImage = products[1]?.image_urls?.[0] || 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=600&fit=crop';
+  const craftImage = products[2]?.image_urls?.[0] || 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=600&fit=crop';
+  
+  console.log('About page images:', { heroImage, heritageImage, craftImage });
+
   return (
     <div className="min-h-screen">
       {/* Hero Section - Full-bleed image */}
       <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?w=1920&h=1080&fit=crop"
+            src={heroImage}
             alt="Master artisan crafting luxury jewelry with precision"
             fill
             priority
@@ -59,7 +93,7 @@ export default function AboutPage() {
             </div>
             <div className="relative rounded-xl h-80 md:h-96 overflow-hidden shadow-md">
               <Image
-                src="https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?w=800&h=600&fit=crop"
+                src={heritageImage}
                 alt="Traditional Indian jewelry design with intricate goldwork"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -76,7 +110,7 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="relative rounded-xl h-80 md:h-96 overflow-hidden order-2 md:order-1 shadow-md">
               <Image
-                src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=600&fit=crop"
+                src={craftImage}
                 alt="Handcrafting gold and gemstone ornaments in our workshop"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"

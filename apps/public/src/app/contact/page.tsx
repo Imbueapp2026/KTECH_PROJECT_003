@@ -10,8 +10,6 @@ function ContactForm() {
   
   const [formData, setFormData] = useState({
     name: "",
-    phone: "",
-    email: "",
     message: "",
     product_id: productId || "",
     source_page: "/contact",
@@ -31,7 +29,7 @@ function ContactForm() {
     try {
       await api.post("/api/inquiries", formData);
       setSuccess(true);
-      setFormData({ name: "", phone: "", email: "", message: "", product_id: "", source_page: "/contact", size: "", additional_notes: "" });
+      setFormData({ name: "", message: "", product_id: "", source_page: "/contact", size: "", additional_notes: "" });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to submit inquiry");
     } finally {
@@ -40,38 +38,43 @@ function ContactForm() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center mb-10">
-        <span className="text-xs uppercase tracking-widest text-gold font-semibold mb-1 block">Avirat Concierge</span>
-        <h1 className="text-4xl font-serif text-charcoal mb-3">Get in Touch</h1>
-        <p className="text-base text-charcoal/70 max-w-md mx-auto">
+    <div>
+      <div className="text-center mb-6">
+        <h1 className="text-3xl md:text-4xl font-serif text-charcoal mb-2">Get in Touch</h1>
+        <p className="text-sm text-charcoal/70 max-w-md mx-auto">
           Have a question about a piece or looking for custom bespoke jewelry? We&apos;d love to help.
         </p>
       </div>
 
       {success ? (
-        <div className="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100">
-          <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-200">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white rounded-sm shadow-md p-6 text-center border border-gray-100">
+          <div className="w-12 h-12 bg-gold/10 text-gold rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-serif text-charcoal mb-2">Inquiry Received</h2>
-          <p className="text-charcoal/70 max-w-sm mx-auto">
+          <h2 className="text-xl font-serif text-charcoal mb-2">Inquiry Received</h2>
+          <p className="text-charcoal/70 max-w-sm mx-auto mb-4 text-sm">
             Thank you for reaching out. Our jewelry specialist will get back to you shortly.
           </p>
+          <button
+            onClick={() => setSuccess(false)}
+            className="px-5 py-2.5 bg-gold text-white font-medium hover:opacity-95 transition-all shadow-md border-b-4 border-dusty-rose text-sm"
+          >
+            Send Another Inquiry
+          </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 sm:p-8 border border-gray-100" noValidate>
+        <form onSubmit={handleSubmit} className="bg-white rounded-sm shadow-md p-5 border border-gray-100" noValidate>
           {error && (
-            <div id="form-error" role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
+            <div id="form-error" role="alert" className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-sm mb-4 text-sm">
               {error}
             </div>
           )}
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-charcoal mb-1.5">
+              <label htmlFor="name" className="block text-sm font-medium text-charcoal mb-1">
                 Name <span className="text-dusty-rose" aria-hidden="true">*</span>
               </label>
               <input
@@ -82,46 +85,14 @@ function ContactForm() {
                 autoComplete="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full border border-charcoal/20 bg-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors text-charcoal"
+                className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors text-charcoal text-sm"
                 placeholder="Your full name"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-charcoal mb-1.5">
-                Phone <span className="text-dusty-rose" aria-hidden="true">*</span>
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                required
-                aria-required="true"
-                autoComplete="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full border border-charcoal/20 bg-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors text-charcoal"
-                placeholder="Phone number (e.g. +91 98765 43210)"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-charcoal mb-1.5">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full border border-charcoal/20 bg-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors text-charcoal"
-                placeholder="your.email@example.com"
               />
             </div>
 
             {productId && (
               <div>
-                <label htmlFor="product_id" className="block text-sm font-medium text-charcoal mb-1.5">
+                <label htmlFor="product_id" className="block text-sm font-medium text-charcoal mb-1">
                   Selected Product Ref
                 </label>
                 <input
@@ -129,21 +100,21 @@ function ContactForm() {
                   id="product_id"
                   value={formData.product_id}
                   readOnly
-                  className="w-full border border-charcoal/20 rounded-lg px-4 py-2.5 bg-[#FAF8F5] text-charcoal/70 font-mono text-sm"
+                  className="w-full border border-charcoal/20 rounded-sm px-3 py-2 bg-[#FAF8F5] text-charcoal/70 font-mono text-xs"
                 />
               </div>
             )}
 
             {productId && (
               <div>
-                <label htmlFor="size" className="block text-sm font-medium text-charcoal mb-1.5">
+                <label htmlFor="size" className="block text-sm font-medium text-charcoal mb-1">
                   Size Preference
                 </label>
                 <select
                   id="size"
                   value={formData.size}
                   onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  className="w-full border border-charcoal/20 bg-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors text-charcoal"
+                  className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors text-charcoal text-sm"
                 >
                   <option value="">Select size (optional)</option>
                   <option value="ring-5">Ring Size 5</option>
@@ -168,21 +139,21 @@ function ContactForm() {
             )}
 
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-charcoal mb-1.5">
-                Message / Inquiry Details
+              <label htmlFor="message" className="block text-sm font-medium text-charcoal mb-1">
+                Message <span className="text-dusty-rose" aria-hidden="true">*</span>
               </label>
               <textarea
                 id="message"
-                rows={4}
+                rows={3}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="w-full border border-charcoal/20 bg-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors resize-none text-charcoal"
+                className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors resize-none text-charcoal text-sm"
                 placeholder="Tell us about the design, occasion, or customization you have in mind..."
               />
             </div>
 
             <div>
-              <label htmlFor="additional_notes" className="block text-sm font-medium text-charcoal mb-1.5">
+              <label htmlFor="additional_notes" className="block text-sm font-medium text-charcoal mb-1">
                 Additional Notes
               </label>
               <textarea
@@ -190,15 +161,15 @@ function ContactForm() {
                 rows={2}
                 value={formData.additional_notes}
                 onChange={(e) => setFormData({ ...formData, additional_notes: e.target.value })}
-                className="w-full border border-charcoal/20 bg-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors resize-none text-charcoal"
-                placeholder="Preferred call time, metal preference, budget..."
+                className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors resize-none text-charcoal text-sm"
+                placeholder="Metal preference, budget, visit time..."
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gold text-white py-3.5 px-6 rounded-lg font-medium hover:opacity-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full bg-gold text-white py-3 px-6 font-medium hover:opacity-95 transition-all shadow-md border-b-4 border-dusty-rose disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {loading ? "Sending Inquiry..." : "Submit Inquiry"}
             </button>
@@ -212,13 +183,43 @@ function ContactForm() {
 export default function ContactPage() {
   return (
     <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-16">
-      <Suspense fallback={
-        <div className="max-w-2xl mx-auto px-4 text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-gold"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Contact Information */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-sm shadow-md p-6 border border-gray-100">
+              <h2 className="text-xl font-serif text-charcoal mb-4">Visit Our Store</h2>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium text-charcoal mb-1">Address</p>
+                  <p className="text-charcoal/70 text-sm">
+                    Shayona Green, Gota<br />
+                    Ahmedabad, Gujarat 382481
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium text-charcoal mb-1">Business Hours</p>
+                  <p className="text-charcoal/70 text-sm">
+                    Monday - Saturday: 10:00 AM - 8:00 PM<br />
+                    Sunday: 11:00 AM - 6:00 PM
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Form */}
+          <div className="lg:col-span-2">
+            <Suspense fallback={
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-gold"></div>
+              </div>
+            }>
+              <ContactForm />
+            </Suspense>
+          </div>
         </div>
-      }>
-        <ContactForm />
-      </Suspense>
+      </div>
     </div>
   );
 }

@@ -45,15 +45,15 @@ export function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-lg font-serif font-semibold mb-4">Contact Us</h3>
+            <h3 className="text-lg font-serif font-semibold mb-4">Visit Us</h3>
             <ul className="space-y-2 text-white/70">
               <li>
-                <p className="font-medium text-white">Email</p>
-                <p>info@aviratjewelers.com</p>
+                <p className="font-medium text-white">Location</p>
+                <p>Shayona Green, Gota, Ahmedabad, Gujarat 382481</p>
               </li>
               <li>
-                <p className="font-medium text-white">Address</p>
-                <p>Gujarat, India</p>
+                <p className="font-medium text-white">Phone</p>
+                <p>099795 63076</p>
               </li>
             </ul>
           </div>
@@ -62,6 +62,16 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-white/10 mt-8 pt-8 text-center text-white/50 text-sm">
           <p>Crafted with precision and passion for fine jewelry</p>
+          <p className="mt-2">
+            <a 
+              href="https://ktech-dev.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-white font-bold font-sans uppercase tracking-wider text-base hover:text-gold transition-colors"
+            >
+              Made By KTech
+            </a>
+          </p>
         </div>
       </div>
     </footer>

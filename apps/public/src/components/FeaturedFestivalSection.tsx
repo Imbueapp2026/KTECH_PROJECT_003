@@ -98,11 +98,23 @@ export function FeaturedFestivalSection() {
     return () => clearTimeout(timer);
   }, [fetchData]);
 
-  // Optional: Add periodic refresh to check for new festivals/offers
+  // Refresh data when page becomes visible (e.g., user returns to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchData]);
+
+  // Periodic refresh to check for new festivals/offers
   useEffect(() => {
     const interval = setInterval(() => {
       void fetchData();
-    }, 60000); // Check every minute for new festivals/offers
+    }, 10000); // Check every 10 seconds for new festivals/offers
 
     return () => clearInterval(interval);
   }, [fetchData]);
@@ -122,13 +134,17 @@ export function FeaturedFestivalSection() {
               ref={bannerRef}
               className="relative aspect-[21/9] min-h-[220px] max-h-[420px] w-full overflow-hidden"
             >
-              <Image
-                src={activeFestival.image_url || "https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=1200&h=600&fit=crop"}
-                alt={activeFestival.name}
-                fill
-                sizes="100vw"
-                className="object-cover transition-transform duration-700 hover:scale-105"
-              />
+              {activeFestival.image_url ? (
+                <Image
+                  src={activeFestival.image_url}
+                  alt={activeFestival.name}
+                  fill
+                  sizes="100vw"
+                  className="object-cover transition-transform duration-700 hover:scale-105"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-r from-[#C9A66B] to-[#8B7355]" />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
                 <span className="text-xs uppercase tracking-widest text-[#C9A66B] font-semibold mb-1 block">Festive Special</span>

@@ -107,13 +107,13 @@ export default function FestivalsPage() {
         </p>
       )}
 
-      {festivals.length === 0 ? (
+      {festivals.filter(festival => isCurrentlyActive(festival)).length === 0 ? (
         <div className="bg-[var(--color-primary)] border border-dashed border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] py-16 text-center">
-          <p className="text-sm text-[var(--color-tertiary)]">No festivals yet. Create your first festival to get started.</p>
+          <p className="text-sm text-[var(--color-tertiary)]">No active festivals. Create your first festival to get started.</p>
         </div>
       ) : (
         <div className="grid gap-4">
-          {festivals.map((festival) => (
+          {festivals.filter(festival => isCurrentlyActive(festival)).map((festival) => (
             <div
               key={festival.id}
               className="bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] shadow-[var(--shadow-card)] overflow-hidden"
@@ -166,6 +166,66 @@ export default function FestivalsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Show archived/inactive festivals section */}
+      {festivals.filter(festival => !isCurrentlyActive(festival)).length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold text-[var(--color-tertiary)] mb-4">Archived Festivals</h2>
+          <div className="grid gap-4">
+            {festivals.filter(festival => !isCurrentlyActive(festival)).map((festival) => (
+              <div
+                key={festival.id}
+                className="bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] shadow-[var(--shadow-card)] overflow-hidden opacity-60"
+              >
+                <div className="p-5 flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h2 className="text-base font-semibold text-[var(--color-ink)]">
+                        {festival.name}
+                      </h2>
+                      <Badge tone="neutral">
+                        Inactive
+                      </Badge>
+                    </div>
+                    {festival.description && (
+                      <p className="text-sm text-[var(--color-ink-soft)] mb-2 line-clamp-2">
+                        {festival.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-4 text-sm text-[var(--color-tertiary)]">
+                      <span>
+                        {formatDateRange(festival)}
+                      </span>
+                      {festival.image_url && (
+                        <span className="text-xs">Has image</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/festivals/${festival.id}`}
+                      className="inline-flex items-center justify-center h-8 px-3 rounded-[var(--radius-sm)] text-sm font-medium bg-[var(--color-secondary-soft)] text-[var(--color-ink)] border border-[var(--color-secondary)]/30 hover:bg-[var(--color-secondary)] hover:border-[var(--color-secondary)] focus-ring"
+                    >
+                      Manage
+                    </Link>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => {
+                        setDeletingId(festival.id);
+                        setConfirmOpen(true);
+                      }}
+                      disabled={deletingId === festival.id}
+                    >
+                      {deletingId === festival.id ? "Ending..." : "End"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
