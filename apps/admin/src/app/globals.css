@@ -1,10 +1,12 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Avirat Admin — design tokens.
  * Per avirat-jewelers-admin-design-tokens.md (DRAFT). Hex values are placeholders
  * pending brand confirmation. Grey does the heavy lifting here (chrome, borders,
  * disabled); gold signals primary action; dusky pink marks active/selected. */
-@theme {
+:root {
   --color-primary: #ffffff;
   --color-secondary: #d8a8a0;
   --color-secondary-soft: #f3e2df;
@@ -53,22 +55,24 @@
 }
 
 /* Visible keyboard focus ring — applied via className="focus-ring". */
-@utility focus-ring {
+@layer components {
+  .focus-ring {
   &:focus-visible {
     outline: 2px solid var(--color-quaternary);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
-}
+  }
 
 /* Section heading divider used at the top of major page areas. */
-@utility section-divider {
-  border-bottom: 1px solid var(--color-tertiary-soft);
-}
+  .section-divider {
+    border-bottom: 1px solid var(--color-tertiary-soft);
+  }
 
 /* Subtle hairline used between rows / list items. */
-@utility hairline {
-  border-color: var(--color-tertiary-soft);
+  .hairline {
+    border-color: var(--color-tertiary-soft);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
