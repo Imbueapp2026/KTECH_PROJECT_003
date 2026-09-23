@@ -20,8 +20,8 @@ export function ProductCard({ product }: ProductCardProps) {
     : product.price;
 
   return (
-    <Link href={`/products/${product.id}`} className="block group">
-      <div className="relative bg-white rounded-sm overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow">
+    <Link href={`/products/${product.id}`} className="block h-full group">
+      <div className="relative flex h-full flex-col bg-white rounded-sm overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow">
         {/* Image container with off-white background */}
         <div className="relative aspect-square bg-[#FAF8F5] overflow-hidden rounded-sm">
           {imageUrl ? (
@@ -59,13 +59,18 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
         
         {/* Product info with generous spacing */}
-        <div className="px-2 py-3.5">
-          <p className="text-[11px] text-charcoal tracking-widest uppercase mb-1 font-medium">
+        <div className="flex flex-1 flex-col px-2 py-3.5">
+          <p className="h-[17px] overflow-hidden text-[11px] text-charcoal tracking-widest uppercase mb-1 font-medium line-clamp-1">
             {product.category?.name || "Uncategorized"}
           </p>
-          <h3 className="font-serif text-[16px] font-medium text-charcoal leading-relaxed mb-1.5 line-clamp-2 group-hover:text-gold transition-colors">
+          <h3 className="h-[52px] overflow-hidden font-serif text-[16px] font-medium text-charcoal leading-relaxed mb-1.5 line-clamp-2 group-hover:text-gold transition-colors">
             {product.name}
           </h3>
+          {product.description && (
+            <p className="mb-2 text-[12px] leading-relaxed text-charcoal/70 line-clamp-2">
+              {product.description}
+            </p>
+          )}
           <div className="flex items-baseline gap-2">
             {hasOffer && discount ? (
               <>

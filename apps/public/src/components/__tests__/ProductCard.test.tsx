@@ -78,4 +78,19 @@ describe('ProductCard Component', () => {
     // Discounted price: 100,000 - 10% = 90,000
     expect(screen.getByText(/₹\s?90,000/)).toBeInTheDocument();
   });
+
+  it('renders a truncated description in the catalog card without adding an inline expand control', () => {
+    const detailedProduct: ProductJoined = {
+      ...mockProduct,
+      description: 'A handcrafted necklace with delicate filigree work, heirloom detailing, and a statement silhouette designed for celebrations and everyday elegance.',
+    };
+
+    render(<ProductCard product={detailedProduct} />);
+
+    const description = screen.getByText(/A handcrafted necklace with delicate filigree work/i);
+    expect(description).toBeInTheDocument();
+    expect(description).toHaveClass('line-clamp-2');
+
+    expect(screen.queryByRole('button', { name: /read more|show more/i })).not.toBeInTheDocument();
+  });
 });

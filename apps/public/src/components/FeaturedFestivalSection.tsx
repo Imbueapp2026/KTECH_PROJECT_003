@@ -9,8 +9,6 @@ import type { ProductJoined, Festival } from "@/types";
 export function FeaturedFestivalSection() {
   const [festivalProducts, setFestivalProducts] = useState<ProductJoined[]>([]);
   const [activeFestival, setActiveFestival] = useState<Festival | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [shouldRender, setShouldRender] = useState(false);
   const [hoveredImageIndex, setHoveredImageIndex] = useState<Record<string, number>>({});
   const hoverTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
   const bannerRef = useRef<HTMLDivElement>(null);
@@ -79,15 +77,10 @@ export function FeaturedFestivalSection() {
         const productsData = await productsRes.json();
         const products = productsData.data || [];
         setFestivalProducts(products);
-        // Only render if there are products to show
-        setShouldRender(products.length > 0);
       }
     } catch (error) {
       console.warn("Failed to fetch festival data:", error);
       setFestivalProducts([]); // Ensure empty array on error
-      setShouldRender(false);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -118,11 +111,6 @@ export function FeaturedFestivalSection() {
 
     return () => clearInterval(interval);
   }, [fetchData]);
-
-  // Only render if there are products to show (from festival or offers)
-  if (!loading && !shouldRender) {
-    return null;
-  }
 
   return (
     <section className="py-16 bg-white overflow-hidden">
@@ -169,7 +157,9 @@ export function FeaturedFestivalSection() {
                   Current Offers
                 </h2>
                 <p className="text-white/90 text-sm md:text-base max-w-2xl font-light">
-                  Explore our exclusive collection with special discounts
+                  {festivalProducts.length > 0
+                    ? "Explore our exclusive collection with special discounts"
+                    : "No offers available"}
                 </p>
               </div>
             </div>
@@ -239,6 +229,9 @@ export function FeaturedFestivalSection() {
                         {formatPrice(product.price)}
                       </p>
                     </div>
+                    <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-[#C9A66B]">
+                      {product.offer?.is_active ? "Offer available" : "No offer available"}
+                    </p>
                   </div>
                 </div>
               </Link>

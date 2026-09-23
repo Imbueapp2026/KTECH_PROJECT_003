@@ -43,7 +43,7 @@ export default async function AboutPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section - Full-bleed image */}
-      <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[60svh] min-h-[360px] sm:min-h-[400px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <Image
             src={heroImage}
@@ -56,35 +56,35 @@ export default async function AboutPage() {
           <div className="absolute inset-0 bg-black/50" />
         </div>
         
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pt-16">
-          <h1 className="text-5xl md:text-6xl font-serif font-semibold text-white mb-4">
+        <div className="relative z-10 text-center px-4 sm:px-6 max-w-4xl mx-auto pt-14 sm:pt-16">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-semibold text-white mb-3 sm:mb-4 leading-tight">
             Our Story
           </h1>
-          <p className="text-lg text-white/90 font-light max-w-xl mx-auto">
+          <p className="text-base sm:text-lg text-white/90 font-light max-w-xl mx-auto leading-relaxed">
             Decades of Gujarati tradition, honesty, and master craftsmanship.
           </p>
         </div>
       </section>
 
       {/* First Section - Heritage statement */}
-      <section className="py-20 bg-white">
+      <section className="py-12 sm:py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-2xl md:text-3xl font-serif text-charcoal leading-relaxed mb-8">
+          <p className="text-2xl sm:text-3xl font-serif text-charcoal leading-relaxed mb-6 sm:mb-8">
             Avirat Jewelers has spent years building pieces for people in Gujarat who know exactly what they&apos;re looking at.
           </p>
-          <p className="text-lg text-charcoal/80 leading-relaxed border-l-4 border-dusty-rose pl-6">
+          <p className="text-base sm:text-lg text-charcoal/80 leading-relaxed border-l-4 border-dusty-rose pl-4 sm:pl-6">
             We believe that true luxury lies in transparency and craftsmanship. Every piece we create tells a story of dedication, precision, and an unwavering commitment to quality. Our journey began with a simple vision: to bring honest, beautifully crafted jewelry to those who appreciate the art of fine workmanship.
           </p>
         </div>
       </section>
 
       {/* Second Section - Gujarat Heritage */}
-      <section className="py-20 bg-[#FAF8F5]">
+      <section className="py-12 sm:py-20 bg-[#FAF8F5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-serif text-charcoal mb-6">Our Gujarat Heritage</h2>
-              <p className="text-lg text-charcoal/80 leading-relaxed mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-charcoal mb-4 sm:mb-6">Our Gujarat Heritage</h2>
+              <p className="text-base sm:text-lg text-charcoal/80 leading-relaxed mb-4 sm:mb-6">
                 Rooted in the rich traditions of Gujarat, our craft draws from centuries of jewelry-making expertise. From the intricate designs of temple jewelry to the contemporary elegance of modern pieces, we honor our heritage while embracing innovation.
               </p>
               <p className="text-lg text-charcoal/80 leading-relaxed">
@@ -118,8 +118,8 @@ export default async function AboutPage() {
               />
             </div>
             <div className="order-1 md:order-2">
-              <h2 className="text-3xl md:text-4xl font-serif text-charcoal mb-6">Our Craft</h2>
-              <p className="text-lg text-charcoal/80 leading-relaxed mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-charcoal mb-4 sm:mb-6">Our Craft</h2>
+              <p className="text-base sm:text-lg text-charcoal/80 leading-relaxed mb-4 sm:mb-6">
                 At Avirat Jewelers, we believe that exceptional jewelry is the result of patience, skill, and an unwavering attention to detail. Our artisans spend countless hours perfecting each piece, from the initial design to the final polish.
               </p>
               <p className="text-lg text-charcoal/80 leading-relaxed">

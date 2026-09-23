@@ -33,7 +33,7 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
   const finalPrice = calculateFinalPrice();
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-16 px-4 md:px-8">
+    <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-12 sm:pb-16 px-3 sm:px-4 md:px-8">
       <div className="max-w-4xl mx-auto">
         <Link
           href="/collections"
@@ -46,7 +46,7 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
         </Link>
 
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="grid md:grid-cols-2 gap-8 p-6 md:p-8">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 p-4 sm:p-6 md:p-8">
             {/* Image Section */}
             <div className="aspect-square relative bg-gray-100 rounded-lg overflow-hidden">
               {imageUrl ? (
@@ -84,7 +84,7 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
                 <p className="text-sm text-charcoal/70 uppercase tracking-wide mb-2">
                   {product.category?.name || "Uncategorized"}
                 </p>
-                <h1 className="text-2xl md:text-3xl font-serif font-bold text-charcoal mb-2">
+                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal mb-2 leading-tight">
                   {product.name}
                 </h1>
                 <div className="flex items-center gap-2 mt-2">
@@ -126,7 +126,7 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
                 <div className="flex items-baseline gap-2">
                   {hasOffer && discount ? (
                     <>
-                      <span className="text-3xl font-bold text-charcoal">
+                      <span className="text-2xl sm:text-3xl font-bold text-charcoal">
                         {formatPrice(finalPrice)}
                       </span>
                       <span className="text-lg text-charcoal/40 line-through">
@@ -134,7 +134,7 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
                       </span>
                     </>
                   ) : (
-                    <span className="text-3xl font-bold text-charcoal">
+                    <span className="text-2xl sm:text-3xl font-bold text-charcoal">
                       {formatPrice(product.price)}
                     </span>
                   )}

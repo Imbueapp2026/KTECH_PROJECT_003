@@ -55,11 +55,11 @@ export function Header() {
         isSolidStyle ? "bg-white shadow-md" : "bg-transparent"
       } ${isHidden ? "-translate-y-full" : "translate-y-0"}`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo/Brand */}
-          <Link href="/" className="flex items-center">
-            <span className={`text-2xl font-serif font-semibold tracking-wide ${isSolidStyle ? "text-charcoal" : "text-white"}`}>
+          <Link href="/" className="flex items-center min-h-[44px]">
+            <span className={`text-lg sm:text-2xl font-serif font-semibold tracking-wide ${isSolidStyle ? "text-charcoal" : "text-white"}`}>
               Avirat Jewelers
             </span>
           </Link>
@@ -145,7 +145,7 @@ export function Header() {
 
             <Link
               href="/collections"
-              className={`p-2 transition-colors hover:text-gold ${
+              className={`flex items-center justify-center min-h-[44px] min-w-[44px] p-2 transition-colors hover:text-gold ${
                 isSolidStyle ? "text-charcoal" : "text-white"
               }`}
               aria-label="Search Collections"
@@ -157,7 +157,7 @@ export function Header() {
             
             <Link
               href="/contact"
-              className={`p-2 transition-colors hover:text-gold ${
+              className={`flex items-center justify-center min-h-[44px] min-w-[44px] p-2 transition-colors hover:text-gold ${
                 isSolidStyle ? "text-charcoal" : "text-white"
               }`}
               aria-label="Inquiry / Contact"
@@ -170,7 +170,7 @@ export function Header() {
             {/* Mobile Menu Button on the far right */}
             <button
               type="button"
-              className={`md:hidden p-2 transition-colors hover:text-gold ${
+              className={`md:hidden flex items-center justify-center min-h-[44px] min-w-[44px] p-2 transition-colors hover:text-gold ${
                 isSolidStyle ? "text-charcoal" : "text-white"
               }`}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

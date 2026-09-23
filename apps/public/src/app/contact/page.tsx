@@ -114,7 +114,7 @@ function ContactForm() {
                   id="size"
                   value={formData.size}
                   onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors text-charcoal text-sm"
+                  className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2.5 focus:outline-none focus:border-gold transition-colors text-charcoal text-base"
                 >
                   <option value="">Select size (optional)</option>
                   <option value="ring-5">Ring Size 5</option>
@@ -169,7 +169,7 @@ function ContactForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gold text-white py-3 px-6 font-medium hover:opacity-95 transition-all shadow-md border-b-4 border-dusty-rose disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="w-full min-h-[44px] bg-gold text-white py-3 px-6 font-medium hover:opacity-95 transition-all shadow-md border-b-4 border-dusty-rose disabled:opacity-50 disabled:cursor-not-allowed text-base"
             >
               {loading ? "Sending Inquiry..." : "Submit Inquiry"}
             </button>
@@ -182,8 +182,8 @@ function ContactForm() {
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pt-28 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#FAF8F5] pt-20 sm:pt-28 pb-12 sm:pb-16">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Contact Information */}
           <div className="lg:col-span-1 space-y-6">

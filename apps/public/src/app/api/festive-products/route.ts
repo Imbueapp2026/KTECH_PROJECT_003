@@ -58,7 +58,8 @@ export async function GET(req: Request) {
         gst_percent,
         material_type,
         festival_id,
-        categories(id, name, slug)
+        categories(id, name, slug),
+        offers(id, label, is_active)
       `)
       .or(`festival_id.eq.${activeFestival.id},offer_id.not.is.null`)
       .eq("status", "published")
@@ -75,7 +76,9 @@ export async function GET(req: Request) {
     const transformedData = data?.map((item: Record<string, unknown>) => ({
       ...item,
       category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
+      offer: Array.isArray(item.offers) ? item.offers[0] : item.offers || null,
       categories: undefined,
+      offers: undefined,
       source: item.festival_id === activeFestival.id ? 'festival' : 'offer',
     })) || [];
     
