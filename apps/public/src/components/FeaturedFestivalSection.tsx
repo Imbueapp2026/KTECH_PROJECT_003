@@ -9,6 +9,7 @@ import type { ProductJoined, Festival } from "@/types";
 export function FeaturedFestivalSection() {
   const [festivalProducts, setFestivalProducts] = useState<ProductJoined[]>([]);
   const [activeFestival, setActiveFestival] = useState<Festival | null>(null);
+  const [fetchError, setFetchError] = useState(false);
   const [hoveredImageIndex, setHoveredImageIndex] = useState<Record<string, number>>({});
   const hoverTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
   const bannerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +53,7 @@ export function FeaturedFestivalSection() {
 
   // Fetch festival and products data
   const fetchData = useCallback(async () => {
+    setFetchError(false);
     try {
       // First, fetch active festival
       const festivalRes = await fetch("/api/active-festival");
@@ -77,10 +79,13 @@ export function FeaturedFestivalSection() {
         const productsData = await productsRes.json();
         const products = productsData.data || [];
         setFestivalProducts(products);
+      } else {
+        throw new Error(`Failed to fetch products: ${productsRes.status}`);
       }
     } catch (error) {
       console.warn("Failed to fetch festival data:", error);
-      setFestivalProducts([]); // Ensure empty array on error
+      setFestivalProducts([]);
+      setFetchError(true);
     }
   }, []);
 
@@ -157,10 +162,21 @@ export function FeaturedFestivalSection() {
                   Current Offers
                 </h2>
                 <p className="text-white/90 text-sm md:text-base max-w-2xl font-light">
-                  {festivalProducts.length > 0
+                  {fetchError
+                    ? "We couldn't load our offers right now"
+                    : festivalProducts.length > 0
                     ? "Explore our exclusive collection with special discounts"
                     : "No offers available"}
                 </p>
+                {fetchError && (
+                  <button
+                    type="button"
+                    onClick={() => void fetchData()}
+                    className="mt-4 rounded border border-white/70 px-4 py-2 text-sm text-white transition-colors hover:bg-white/10"
+                  >
+                    Try again
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -252,4 +268,3 @@ export function FeaturedFestivalSection() {
     </section>
   );
 }
-
