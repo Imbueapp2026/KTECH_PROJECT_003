@@ -70,4 +70,16 @@ describe("FeaturedFestivalSection", () => {
     expect(screen.getByText("Offer available")).toBeInTheDocument();
     expect(screen.getByText("Gold Ring")).toBeInTheDocument();
   });
+
+  it("shows a retry state when the offers API fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+
+    render(<FeaturedFestivalSection />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(screen.getByText(/we couldn't load our offers right now/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
 });

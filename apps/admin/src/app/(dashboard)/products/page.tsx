@@ -14,6 +14,8 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +76,10 @@ export default function ProductsPage() {
     return filtered;
   }, [allProducts, searchQuery, categoryFilter, statusFilter, availabilityFilter]);
 
+  const totalPages = products ? Math.max(1, Math.ceil(products.length / pageSize)) : 1;
+  const currentPage = Math.min(page, totalPages);
+  const pagedProducts = products ? products.slice((currentPage - 1) * pageSize, currentPage * pageSize) : [];
+
   const published = allProducts?.filter((p) => p.status === "published").length ?? 0;
   const draft = allProducts?.filter((p) => p.status === "draft").length ?? 0;
   const onSale = allProducts?.filter((p) => p.offer_id).length ?? 0;
@@ -115,7 +121,10 @@ export default function ProductsPage() {
             </label>
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setPage(1);
+              }}
               className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus-ring"
             >
               <option value="all">All categories</option>
@@ -132,7 +141,10 @@ export default function ProductsPage() {
             </label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
               className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus-ring"
             >
               <option value="all">All statuses</option>
@@ -147,7 +159,10 @@ export default function ProductsPage() {
             </label>
             <select
               value={availabilityFilter}
-              onChange={(e) => setAvailabilityFilter(e.target.value)}
+              onChange={(e) => {
+                setAvailabilityFilter(e.target.value);
+                setPage(1);
+              }}
               className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus-ring"
             >
               <option value="all">All</option>
@@ -169,8 +184,10 @@ export default function ProductsPage() {
         <ProductGridSkeleton count={8} />
       ) : (
         <>
-          <div className="flex items-center justify-between text-xs text-[var(--color-tertiary)]">
-            <span>{products.length} {products.length === 1 ? "product" : "products"} found</span>
+          <div className="flex items-center justify-between text-xs text-[var(--color-tertiary)] gap-3 flex-wrap">
+            <span>
+              {products.length} {products.length === 1 ? "product" : "products"} found
+            </span>
             {(searchQuery || categoryFilter !== "all" || statusFilter !== "all" || availabilityFilter !== "all") && (
               <button
                 onClick={() => {
@@ -185,8 +202,33 @@ export default function ProductsPage() {
               </button>
             )}
           </div>
+          {products.length > 0 && totalPages > 1 && (
+            <div className="flex items-center justify-between gap-3 flex-wrap rounded-[var(--radius-md)] border border-[var(--color-tertiary-soft)] bg-[var(--color-primary)] px-3 py-2">
+              <span className="text-xs text-[var(--color-tertiary)]">
+                Page {currentPage} of {totalPages}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="h-8 px-3 text-xs rounded-[var(--radius-sm)] border border-[var(--color-tertiary-soft)] bg-[var(--color-primary)] text-[var(--color-ink)] disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-8 px-3 text-xs rounded-[var(--radius-sm)] border border-[var(--color-tertiary-soft)] bg-[var(--color-primary)] text-[var(--color-ink)] disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
           <ProductGrid
-            products={products}
+            products={pagedProducts}
             hrefBase={(id) => `/products/${id}`}
             emptyTitle="No products found"
             emptyDescription="Try adjusting your search or filters."

@@ -33,6 +33,7 @@
   "packageManager": "npm@10.0.0",
   "dependencies": {
     "@supabase/server": "^1.4.1",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "vercel": "^59.25.4"
   }
 }

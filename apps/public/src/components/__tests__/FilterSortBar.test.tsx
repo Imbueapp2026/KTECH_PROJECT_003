@@ -39,4 +39,15 @@ describe('FilterSortBar Component', () => {
       })
     );
   });
+
+  it('closes the filter panel when Escape is pressed', () => {
+    render(<FilterSortBar onFilterChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /toggle filters/i }));
+    expect(screen.getByLabelText(/filter by metal type/i)).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(screen.queryByLabelText(/filter by metal type/i)).not.toBeInTheDocument();
+  });
 });

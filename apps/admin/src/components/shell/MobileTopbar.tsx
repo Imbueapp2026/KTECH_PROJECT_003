@@ -2,7 +2,9 @@
 import { usePathname } from "next/navigation";
 
 const titles: Record<string, { label: string; section: string }> = {
+  "/": { label: "Overview", section: "Dashboard" },
   "/products": { label: "Products", section: "Catalog" },
+  "/products/new": { label: "Add Product", section: "Catalog" },
   "/inquiries": { label: "Inquiry", section: "Conversations" },
   "/categories": { label: "Categories", section: "Organization" },
   "/offers": { label: "Offers and Discount", section: "Promotions" },

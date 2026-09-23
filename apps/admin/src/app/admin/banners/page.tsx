@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { AuthGate } from "@/components/shell/AuthGate";
 
 interface Product {
   id: string;
@@ -24,6 +26,14 @@ interface Category {
 }
 
 export default function BannersPage() {
+  return (
+    <AuthGate>
+      <BannerManagementContent />
+    </AuthGate>
+  );
+}
+
+function BannerManagementContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,9 +62,9 @@ export default function BannersPage() {
         id: productId,
         is_limited: !currentStatus,
       });
-      setProducts(products.map(p => 
-        p.id === productId ? { ...p, is_limited: !currentStatus } : p
-      ));
+      setProducts((current) =>
+        current.map((p) => (p.id === productId ? { ...p, is_limited: !currentStatus } : p)),
+      );
     } catch (err) {
       console.error("Failed to update product:", err);
     }
@@ -67,9 +77,9 @@ export default function BannersPage() {
         id: categoryId,
         is_featured: !currentStatus,
       });
-      setCategories(categories.map(c => 
-        c.id === categoryId ? { ...c, is_featured: !currentStatus } : c
-      ));
+      setCategories((current) =>
+        current.map((c) => (c.id === categoryId ? { ...c, is_featured: !currentStatus } : c)),
+      );
     } catch (err) {
       console.error("Failed to update category:", err);
     }
@@ -83,13 +93,13 @@ export default function BannersPage() {
         banner_priority: priority,
       });
       if (type === "product") {
-        setProducts(products.map(p => 
-          p.id === id ? { ...p, banner_priority: priority } : p
-        ));
+        setProducts((current) =>
+          current.map((p) => (p.id === id ? { ...p, banner_priority: priority } : p)),
+        );
       } else {
-        setCategories(categories.map(c => 
-          c.id === id ? { ...c, banner_priority: priority } : c
-        ));
+        setCategories((current) =>
+          current.map((c) => (c.id === id ? { ...c, banner_priority: priority } : c)),
+        );
       }
     } catch (err) {
       console.error("Failed to update priority:", err);
@@ -125,7 +135,6 @@ export default function BannersPage() {
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-6">Banner Management</h1>
       
-      {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b">
         <button
           onClick={() => setActiveTab("products")}
@@ -150,11 +159,16 @@ export default function BannersPage() {
           {products.map((product) => (
             <div key={product.id} className="bg-white border rounded-lg p-4 flex items-center gap-4">
               {product.image_urls?.[0] && (
-                <img
-                  src={product.image_urls[0]}
-                  alt={product.name}
-                  className="w-16 h-16 object-cover rounded"
-                />
+                <div className="relative h-16 w-16 overflow-hidden rounded">
+                  <Image
+                    src={product.image_urls[0]}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                    unoptimized
+                  />
+                </div>
               )}
               <div className="flex-1">
                 <h3 className="font-medium">{product.name}</h3>
@@ -178,7 +192,7 @@ export default function BannersPage() {
                   <input
                     type="number"
                     value={product.banner_priority}
-                    onChange={(e) => updatePriority("product", product.id, parseInt(e.target.value) || 0)}
+                    onChange={(e) => updatePriority("product", product.id, Number.parseInt(e.target.value) || 0)}
                     className="w-16 border rounded px-2 py-1 text-sm"
                   />
                 </div>
@@ -219,7 +233,7 @@ export default function BannersPage() {
                   <input
                     type="number"
                     value={category.banner_priority}
-                    onChange={(e) => updatePriority("category", category.id, parseInt(e.target.value) || 0)}
+                    onChange={(e) => updatePriority("category", category.id, Number.parseInt(e.target.value) || 0)}
                     className="w-16 border rounded px-2 py-1 text-sm"
                   />
                 </div>

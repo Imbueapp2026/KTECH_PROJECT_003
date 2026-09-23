@@ -174,7 +174,7 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-32 h-2 bg-[var(--color-surface-muted)] rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-[var(--color-neutral)] rounded-full"
+                      className="h-full bg-[var(--color-surface-muted)] rounded-full"
                       style={{ width: `${(stats.draftProducts / stats.totalProducts) * 100}%` }}
                     />
                   </div>

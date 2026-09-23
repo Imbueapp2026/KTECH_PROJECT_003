@@ -34,9 +34,9 @@ export default function FestivalDetailPage() {
 
       setFestival(festivalRes.data);
       setProducts(productsRes.data || []);
-      
+
       const offerProducts = offersRes.data?.filter(
-        (p) => p.offer_id && p.festival_id !== params.id
+        (p) => p.offer_id && p.festival_id !== params.id,
       ) || [];
       setOfferProducts(offerProducts);
     } catch (err) {
@@ -49,6 +49,7 @@ export default function FestivalDetailPage() {
   useEffect(() => {
     let active = true;
     if (!params.id) return;
+
     async function load() {
       try {
         const [festivalRes, productsRes, offersRes] = await Promise.all([
@@ -60,7 +61,7 @@ export default function FestivalDetailPage() {
         setFestival(festivalRes.data);
         setProducts(productsRes.data || []);
         const offerProducts = offersRes.data?.filter(
-          (p) => p.offer_id && p.festival_id !== params.id
+          (p) => p.offer_id && p.festival_id !== params.id,
         ) || [];
         setOfferProducts(offerProducts);
       } catch (err) {
@@ -69,6 +70,7 @@ export default function FestivalDetailPage() {
         if (active) setLoading(false);
       }
     }
+
     void load();
     return () => {
       active = false;

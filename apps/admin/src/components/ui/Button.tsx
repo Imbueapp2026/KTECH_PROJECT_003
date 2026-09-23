@@ -9,11 +9,11 @@ const base =
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-[var(--color-quaternary)] text-[var(--color-primary)] border border-[var(--color-quaternary)] shadow-[0_1px_2px_rgba(176,141,87,0.25)] hover:bg-[#9c7a48] hover:border-[#9c7a48] hover:shadow-[0_2px_4px_rgba(176,141,87,0.3)]",
+    "bg-[var(--color-quaternary)] text-[var(--color-primary)] border border-[var(--color-quaternary)] shadow-[0_1px_2px_rgba(176,141,87,0.25)] hover:bg-[var(--color-quaternary)]/90 hover:border-[var(--color-quaternary)] hover:shadow-[0_2px_4px_rgba(176,141,87,0.3)]",
   secondary:
     "bg-[var(--color-primary)] text-[var(--color-ink)] border border-[var(--color-tertiary-soft)] hover:bg-[var(--color-surface-muted)] hover:border-[var(--color-tertiary)]",
   danger:
-    "bg-[var(--color-error)] text-[var(--color-primary)] border border-[var(--color-error)] hover:bg-[#893e36] hover:border-[#893e36]",
+    "bg-[var(--color-error)] text-[var(--color-primary)] border border-[var(--color-error)] hover:bg-[var(--color-error)]/90 hover:border-[var(--color-error)]",
   outline:
     "bg-transparent text-[var(--color-quaternary)] border border-[var(--color-quaternary)] hover:bg-[var(--color-quaternary-soft)]",
   ghost:
