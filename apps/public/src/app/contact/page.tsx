@@ -10,6 +10,7 @@ function ContactForm() {
   
   const [formData, setFormData] = useState({
     name: "",
+    phone: "",
     message: "",
     product_id: productId || "",
     source_page: "/contact",
@@ -29,7 +30,7 @@ function ContactForm() {
     try {
       await api.post("/api/inquiries", formData);
       setSuccess(true);
-      setFormData({ name: "", message: "", product_id: "", source_page: "/contact", size: "", additional_notes: "" });
+      setFormData({ name: "", phone: "", message: "", product_id: "", source_page: "/contact", size: "", additional_notes: "" });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to submit inquiry");
     } finally {
@@ -87,6 +88,23 @@ function ContactForm() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors text-charcoal text-sm"
                 placeholder="Your full name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-charcoal mb-1">
+                Phone <span className="text-dusty-rose" aria-hidden="true">*</span>
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                required
+                aria-required="true"
+                autoComplete="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full border border-charcoal/20 bg-white rounded-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors text-charcoal text-sm"
+                placeholder="Your phone number"
               />
             </div>
 

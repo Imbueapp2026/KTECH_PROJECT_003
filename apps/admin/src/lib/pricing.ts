@@ -40,6 +40,10 @@ export function calculateMetalPrice({
   return Math.round(basePrice + gst);
 }
 
+export function calculateDirectPrice(price: number, gstPercent = 5): number {
+  return Math.round(price + price * (gstPercent / 100));
+}
+
 export const PURITY_OPTIONS = [
   { value: 24, label: '24K' },
   { value: 22, label: '22K' },

@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
@@ -6,9 +7,11 @@ import type { ProductJoined } from "@/types";
 
 interface ProductCardProps {
   product: ProductJoined;
+  touchZoom?: boolean;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
+  const [isTouching, setIsTouching] = useState(false);
   const imageUrl = product.image_urls?.[0];
   const hasOffer = product.offer && product.offer.is_active;
   const discount = product.offer?.discount;
@@ -20,7 +23,13 @@ export function ProductCard({ product }: ProductCardProps) {
     : product.price;
 
   return (
-    <Link href={`/products/${product.id}`} className="block h-full group">
+    <Link
+      href={`/products/${product.id}`}
+      className="block h-full group"
+      onTouchStart={touchZoom ? () => setIsTouching(true) : undefined}
+      onTouchEnd={touchZoom ? () => setIsTouching(false) : undefined}
+      onTouchCancel={touchZoom ? () => setIsTouching(false) : undefined}
+    >
       <div className="relative flex h-full flex-col bg-white rounded-sm overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow">
         {/* Image container with off-white background */}
         <div className="relative aspect-square bg-[#FAF8F5] overflow-hidden rounded-sm">
@@ -30,7 +39,7 @@ export function ProductCard({ product }: ProductCardProps) {
               alt={product.name}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-contain p-[12%] transition-transform duration-300 ease-out group-hover:scale-105"
+              className={`object-contain p-[12%] transition-transform duration-300 ease-out group-hover:scale-105 ${touchZoom && isTouching ? "scale-110" : ""} ${touchZoom ? "group-active:scale-110" : ""}`}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-charcoal/40 text-xs">

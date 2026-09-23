@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, email, phone, message, product_id, source_page } = body;
+    const { name, email, phone, message, product_id, source_page, size, additional_notes } = body;
 
     if (!name || !phone) {
       const errorResponse = badRequest("Name and phone are required");
@@ -45,19 +45,36 @@ export async function POST(req: Request) {
 
     const supabase = getAnonClient();
 
-    const { data, error } = await supabase
+    const inquiry = {
+      name: name.trim(),
+      email: email?.trim() || null,
+      phone: phone.trim(),
+      message: message?.trim() || null,
+      product_id: product_id || null,
+      source_page: source_page || null,
+      size: size || null,
+      additional_notes: additional_notes || null,
+      status: "new",
+    };
+
+    let result = await supabase
       .from("inquiries")
-      .insert({
-        name: name.trim(),
-        email: email?.trim() || null,
-        phone: phone.trim(),
-        message: message?.trim() || null,
-        product_id: product_id || null,
-        source_page: source_page || null,
-        status: "new",
-      })
-      .select()
-      .single();
+      .insert(inquiry);
+
+    // Older deployments may not have migration 027 or its schema cache refreshed.
+    if (result.error && (
+      result.error.code === "42703" ||
+      result.error.code === "PGRST204" ||
+      result.error.message?.includes("size") ||
+      result.error.message?.includes("additional_notes")
+    )) {
+      const { size: _size, additional_notes: _additionalNotes, ...legacyInquiry } = inquiry;
+      result = await supabase
+        .from("inquiries")
+        .insert(legacyInquiry);
+    }
+
+    const { data, error } = result;
 
     if (error) {
       console.error("Inquiry insert error:", error);

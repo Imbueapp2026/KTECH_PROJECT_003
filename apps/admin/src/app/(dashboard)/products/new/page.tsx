@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ImageUploader } from "@/components/products/ImageUploader";
-import { calculateMetalPrice, PURITY_OPTIONS, MAKING_CHARGE_TYPES } from "@/lib/pricing";
+import { calculateDirectPrice, calculateMetalPrice, PURITY_OPTIONS, MAKING_CHARGE_TYPES } from "@/lib/pricing";
 import type { Category, Offer } from "@/lib/data/types";
 
 export default function NewProductPage() {
@@ -32,6 +32,7 @@ export default function NewProductPage() {
     offer_id: "",
     status: "published" as "draft" | "published" | "archived",
     // Material and pricing fields
+    pricing_mode: "metal" as "direct" | "metal",
     material_type: "gold" as "gold" | "silver",
     direct_price: "",
     purity_carats: 22 as 24 | 22 | 18 | 14 | 9,
@@ -60,8 +61,8 @@ export default function NewProductPage() {
   }, []);
 
   const calculateEstimatedPrice = (): number => {
-    if (formData.direct_price && !isNaN(parseFloat(formData.direct_price))) {
-      return parseFloat(formData.direct_price);
+    if (formData.pricing_mode === "direct" && formData.direct_price && !isNaN(parseFloat(formData.direct_price))) {
+      return calculateDirectPrice(parseFloat(formData.direct_price), parseFloat(formData.gst_percent));
     }
     const activePrice = formData.material_type === 'silver' ? silverPrice : goldPrice;
     if (!activePrice || !formData.weight_grams || !formData.making_charge) return 0;
@@ -118,13 +119,13 @@ export default function NewProductPage() {
         image_urls: imageUrls,
         // Material and pricing fields
         material_type: formData.material_type,
-        price: formData.direct_price ? parseFloat(formData.direct_price) : null,
+        price: formData.pricing_mode === "direct" && formData.direct_price ? parseFloat(formData.direct_price) : null,
         purity_carats: formData.material_type === 'gold' ? formData.purity_carats : null,
         weight_grams: formData.weight_grams ? parseFloat(formData.weight_grams) : null,
         net_weight_grams: formData.net_weight_grams ? parseFloat(formData.net_weight_grams) : null,
-        making_charge_percent: formData.making_charge_type === 'percent' ? (formData.making_charge ? parseFloat(formData.making_charge) : null) : null,
-        making_charge_flat: formData.making_charge_type === 'flat' ? (formData.making_charge ? parseFloat(formData.making_charge) : null) : null,
-        making_charge_type: formData.making_charge_type,
+        making_charge_percent: formData.pricing_mode === "metal" && formData.making_charge_type === 'percent' ? (formData.making_charge ? parseFloat(formData.making_charge) : null) : null,
+        making_charge_flat: formData.pricing_mode === "metal" && formData.making_charge_type === 'flat' ? (formData.making_charge ? parseFloat(formData.making_charge) : null) : null,
+        making_charge_type: formData.pricing_mode === "metal" ? formData.making_charge_type : null,
         gst_percent: formData.gst_percent ? parseFloat(formData.gst_percent) : 5,
         certifications: formData.certifications || null,
         festival_id: formData.festival_id && formData.festival_id.trim() !== "" ? formData.festival_id : null,
@@ -275,6 +276,20 @@ export default function NewProductPage() {
 
           <div className="mb-4">
             <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+              Pricing Method
+            </label>
+            <select
+              value={formData.pricing_mode}
+              onChange={(e) => setFormData({ ...formData, pricing_mode: e.target.value as "direct" | "metal" })}
+              className="h-10 w-full px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)]"
+            >
+              <option value="direct">Direct Pricing</option>
+              <option value="metal">Gold / Silver Pricing</option>
+            </select>
+          </div>
+
+          {formData.pricing_mode === "direct" && <div className="mb-4">
+            <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
               Direct Price (₹)
             </label>
             <input
@@ -289,9 +304,9 @@ export default function NewProductPage() {
             <p className="text-xs text-[var(--color-tertiary)] mt-1">
               Enter a price to use it directly. Leave blank for automatic pricing.
             </p>
-          </div>
+          </div>}
 
-          <div className="grid grid-cols-2 gap-4">
+          {formData.pricing_mode === "metal" && <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
                 Material Type
@@ -306,24 +321,25 @@ export default function NewProductPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
-                GST (%)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={formData.gst_percent}
-                onChange={(e) => setFormData({ ...formData, gst_percent: e.target.value })}
-                className="h-10 px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
-                placeholder="5"
-              />
-            </div>
+          </div>}
+
+          <div className="mt-4">
+            <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
+              GST (%)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={formData.gst_percent}
+              onChange={(e) => setFormData({ ...formData, gst_percent: e.target.value })}
+              className="h-10 w-full px-3 bg-[var(--color-primary)] border border-[var(--color-tertiary-soft)] rounded-[var(--radius-md)] text-sm text-[var(--color-ink)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+              placeholder="5"
+            />
           </div>
 
-          {formData.material_type === 'gold' && (
+          {formData.pricing_mode === "metal" && formData.material_type === 'gold' && (
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
@@ -376,7 +392,7 @@ export default function NewProductPage() {
             </div>
           )}
 
-          {formData.material_type === 'silver' && (
+          {formData.pricing_mode === "metal" && formData.material_type === 'silver' && (
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
@@ -411,7 +427,7 @@ export default function NewProductPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          {formData.pricing_mode === "metal" && <div className="grid grid-cols-2 gap-4 mt-4">
             <div>
               <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
                 Making Charge Type
@@ -444,7 +460,7 @@ export default function NewProductPage() {
                 required={!formData.direct_price}
               />
             </div>
-          </div>
+          </div>}
 
           <div className="mt-4">
             <label className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)] mb-1.5 block">
@@ -461,16 +477,27 @@ export default function NewProductPage() {
 
           {/* Live Price Preview */}
           <div className="mt-4 pt-4 border-t border-[var(--color-quaternary)]/20">
-            {formData.direct_price && !isNaN(parseFloat(formData.direct_price)) ? (
+            {formData.pricing_mode === "direct" && formData.direct_price && !isNaN(parseFloat(formData.direct_price)) ? (
               <div>
                 <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--color-quaternary)] mb-1">
                   Direct Price (Override Active)
                 </p>
-                <p className="text-2xl font-semibold text-[var(--color-ink)]">
-                  ₹{parseFloat(formData.direct_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between text-[var(--color-tertiary)]">
+                    <span>Direct Price</span>
+                    <span>₹{parseFloat(formData.direct_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </p>
+                  <p className="flex justify-between text-[var(--color-tertiary)]">
+                    <span>GST ({formData.gst_percent}%)</span>
+                    <span>₹{(calculateEstimatedPrice() - parseFloat(formData.direct_price)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </p>
+                  <p className="flex justify-between border-t border-[var(--color-tertiary-soft)] pt-1 text-lg font-semibold text-[var(--color-ink)]">
+                    <span>Final Price</span>
+                    <span>₹{calculateEstimatedPrice().toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </p>
+                </div>
                 <p className="text-xs text-[var(--color-tertiary)] mt-1">
-                  Fixed price override will be saved. Clear the Direct Price field to use automatic metal pricing.
+                  Purity, weight, and making charge are ignored. Clear the Direct Price field to use automatic metal pricing.
                 </p>
               </div>
             ) : metalPriceLoading ? (

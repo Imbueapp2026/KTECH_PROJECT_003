@@ -29,6 +29,7 @@ type Detail = Product & {
   certifications?: string | null;
   gold_price_used?: number | null;
   price_auto_calculated?: boolean;
+  gst_percent?: number | null;
 };
 
 
@@ -251,7 +252,7 @@ export default function ProductDetailPage() {
               <dt className="text-[var(--color-tertiary)]">Category</dt>
               <dd className="font-medium">{product.category?.name ?? "—"}</dd>
               <dt className="text-[var(--color-tertiary)]">Offer</dt>
-              <dd className="font-medium">{product.offer?.label ?? "—"}</dd>
+              <dd className="font-medium">{product.offer?.label ?? "No offer"}</dd>
               <dt className="text-[var(--color-tertiary)]">Created</dt>
               <dd className="font-medium">{new Date(product.created_at).toLocaleDateString()}</dd>
               <dt className="text-[var(--color-tertiary)]">Updated</dt>
@@ -259,10 +260,10 @@ export default function ProductDetailPage() {
             </dl>
           </div>
 
-          {/* Gold Pricing Details */}
-          <div className="bg-[var(--color-quaternary-soft)]/40 border border-[var(--color-quaternary)]/20 rounded-[var(--radius-md)] p-5">
+          {/* Metal Pricing Details */}
+          {product.price_auto_calculated !== false && <div className="bg-[var(--color-quaternary-soft)]/40 border border-[var(--color-quaternary)]/20 rounded-[var(--radius-md)] p-5">
             <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--color-quaternary)] mb-3">
-              Gold Pricing
+              {product.material_type === "silver" ? "Silver Pricing" : "Gold Pricing"}
             </p>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               <dt className="text-[var(--color-tertiary)]">Purity</dt>
@@ -295,7 +296,7 @@ export default function ProductDetailPage() {
                 </>
               )}
             </dl>
-          </div>
+          </div>}
 
           {/* Price Breakdown */}
           <div className="bg-[var(--color-quaternary-soft)]/40 border border-[var(--color-quaternary)]/20 rounded-[var(--radius-md)] p-5">
@@ -303,24 +304,43 @@ export default function ProductDetailPage() {
               Price Breakdown
             </p>
             <div className="space-y-2 text-sm">
+              {product.price_auto_calculated === false ? (
+                <div className="flex justify-between">
+                  <span className="text-[var(--color-tertiary)]">Direct Price</span>
+                  <span className="font-medium">
+                    {product.gst_percent != null
+                      ? formatPrice(product.price / (1 + product.gst_percent / 100))
+                      : formatPrice(product.price)}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-[var(--color-tertiary)]">Gold Value</span>
+                    <span className="font-medium">
+                      {product.purity_carats && product.weight_grams && product.gold_price_used
+                        ? formatPrice(product.purity_carats / 24 * product.weight_grams * product.gold_price_used)
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[var(--color-tertiary)]">Making Charge</span>
+                    <span className="font-medium">
+                      {product.making_charge_type === 'percent' && product.making_charge_percent && product.purity_carats && product.weight_grams && product.gold_price_used
+                        ? formatPrice((product.purity_carats / 24 * product.weight_grams * product.gold_price_used) * (product.making_charge_percent / 100))
+                        : product.making_charge_type === 'flat' && product.making_charge_flat
+                        ? formatPrice(product.making_charge_flat)
+                        : "—"}
+                    </span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between">
-                <span className="text-[var(--color-tertiary)]">Gold Value</span>
+                <span className="text-[var(--color-tertiary)]">GST ({product.gst_percent ?? 5}%)</span>
                 <span className="font-medium">
-                  {product.purity_carats && product.weight_grams && product.gold_price_used
-                    ? formatPrice(product.purity_carats / 24 * product.weight_grams * product.gold_price_used)
-                    : "—"
-                  }
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--color-tertiary)]">Making Charge</span>
-                <span className="font-medium">
-                  {product.making_charge_type === 'percent' && product.making_charge_percent && product.purity_carats && product.weight_grams && product.gold_price_used
-                    ? formatPrice((product.purity_carats / 24 * product.weight_grams * product.gold_price_used) * (product.making_charge_percent / 100))
-                    : product.making_charge_type === 'flat' && product.making_charge_flat
-                    ? formatPrice(product.making_charge_flat)
-                    : "—"
-                  }
+                  {product.gst_percent != null
+                    ? formatPrice(product.price - product.price / (1 + product.gst_percent / 100))
+                    : "—"}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t border-[var(--color-tertiary-soft)]">

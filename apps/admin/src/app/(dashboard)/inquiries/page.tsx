@@ -60,7 +60,11 @@ export default function InquiriesPage() {
     try {
       await api.patch(`/api/admin/inquiries/${row.id}`, { status: next });
       setItems((prev) =>
-        prev ? prev.map((r) => (r.id === row.id ? { ...r, status: next } : r)) : prev,
+        prev
+          ? next === "resolved"
+            ? prev.filter((r) => r.id !== row.id)
+            : prev.map((r) => (r.id === row.id ? { ...r, status: next } : r))
+          : prev,
       );
       push(`Inquiry ${next}.`, "success");
     } catch (err) {
@@ -72,7 +76,10 @@ export default function InquiriesPage() {
 
   const filteredItems = useMemo(() => {
     if (!items) return [];
-    const next = statusFilter === "all" ? items : items.filter((item) => item.status === statusFilter);
+    const activeItems = items.filter((item) => item.status !== "resolved");
+    const next = statusFilter === "all"
+      ? activeItems
+      : activeItems.filter((item) => item.status === statusFilter);
     return [...next].sort((a, b) =>
       sortOrder === "newest"
         ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -137,7 +144,6 @@ export default function InquiriesPage() {
                 <option value="all">All</option>
                 <option value="new">New</option>
                 <option value="contacted">Contacted</option>
-                <option value="resolved">Resolved</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--color-tertiary)]">
@@ -200,16 +206,28 @@ export default function InquiriesPage() {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-[var(--color-ink)]">
-                              {row.name}
-                            </p>
-                            <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="h-9 w-9 shrink-0 rounded-[var(--radius-sm)] bg-[var(--color-quaternary-soft)] text-[var(--color-quaternary)] flex items-center justify-center text-sm font-semibold">
+                            {row.name.trim().slice(0, 1).toUpperCase()}
                           </div>
-                          <p className="text-xs text-[var(--color-tertiary)]">
-                            {row.email} · {row.phone}
-                          </p>
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-[var(--color-ink)] truncate">
+                                {row.name}
+                              </p>
+                              <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>
+                            </div>
+                            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-xs text-[var(--color-tertiary)]">
+                              <a href={`tel:${row.phone}`} className="hover:text-[var(--color-ink)] transition-colors">
+                                {row.phone}
+                              </a>
+                              {row.email && (
+                                <a href={`mailto:${row.email}`} className="hover:text-[var(--color-ink)] transition-colors truncate">
+                                  {row.email}
+                                </a>
+                              )}
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {next && (
@@ -225,12 +243,17 @@ export default function InquiriesPage() {
                         </div>
                       </div>
                       {row.message && (
-                        <p className="text-sm text-[var(--color-ink-soft)] whitespace-pre-wrap leading-relaxed bg-[var(--color-surface-muted)] rounded-[var(--radius-sm)] p-3 border border-[var(--color-tertiary-soft)]">
-                          {row.message}
-                        </p>
+                        <div className="bg-[var(--color-surface-muted)] rounded-[var(--radius-sm)] p-3 border border-[var(--color-tertiary-soft)]">
+                          <p className="text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--color-tertiary)] mb-1">
+                            Message
+                          </p>
+                          <p className="text-sm text-[var(--color-ink-soft)] whitespace-pre-wrap leading-relaxed">
+                            {row.message}
+                          </p>
+                        </div>
                       )}
-                      <div className="flex items-center justify-between text-xs text-[var(--color-tertiary)] pt-1 border-t border-[var(--color-tertiary-soft)]">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between gap-3 flex-wrap text-xs text-[var(--color-tertiary)] pt-3 border-t border-[var(--color-tertiary-soft)]">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {row.product ? (
                             <div className="flex items-center gap-2">
                               {row.product.image_urls && row.product.image_urls[0] && (
@@ -251,15 +274,15 @@ export default function InquiriesPage() {
                               </span>
                             </div>
                           ) : (
-                            "General inquiry"
+                            <Badge tone="neutral">General inquiry</Badge>
                           )}
                           {row.source_page && (
-                            <span className="text-[var(--color-tertiary-soft)]">
-                              from {row.source_page}
-                            </span>
+                            <span className="text-[var(--color-tertiary)]">from {row.source_page}</span>
                           )}
                         </div>
-                        <span>{new Date(row.created_at).toLocaleString()}</span>
+                        <time dateTime={row.created_at} className="shrink-0">
+                          {new Date(row.created_at).toLocaleString()}
+                        </time>
                       </div>
                     </li>
                   );

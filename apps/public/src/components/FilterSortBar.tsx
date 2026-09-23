@@ -132,6 +132,7 @@ export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
                 <option value="engagement">Engagement</option>
                 <option value="everyday">Everyday</option>
                 <option value="festive">Festive</option>
+                <option value="offer">On Offer</option>
               </select>
             </div>
           </div>

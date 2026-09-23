@@ -8,9 +8,9 @@ interface NewArrivalsStripProps {
 }
 
 export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
-  // Filter for published products and sort by created_at desc, then take first 8
+  // Keep promoted products in the offers/festival sections, not New Arrivals.
   const newProducts = products
-    .filter((p) => p.status === "published")
+    .filter((p) => p.status === "published" && !p.offer_id && !p.festival_id)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
 
@@ -38,7 +38,7 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
               <div className="absolute top-2.5 left-2.5 z-10 bg-[#C98A96] text-white text-[11px] font-medium tracking-wide uppercase px-2.5 py-1 rounded-sm">
                 New
               </div>
-              <ProductCard product={product} />
+              <ProductCard product={product} touchZoom />
             </div>
           ))}
         </div>

@@ -18,7 +18,7 @@ import {
   asString,
   asUuid,
 } from "@/lib/http";
-import { calculateMetalPrice } from "@/lib/pricing";
+import { calculateDirectPrice, calculateMetalPrice } from "@/lib/pricing";
 import type { Availability, ProductStatus } from "@/lib/data/types";
 
 const AVAILABILITY = ["available", "made_to_order", "sold"] as const;
@@ -204,57 +204,38 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fetch current gold and silver prices from database concurrently
+    // Fetch a metal price only when the product price must be calculated.
     const supabase = getServiceClient();
-    
-    const [goldPriceRes, silverPriceRes] = await Promise.all([
-      supabase
-        .from("gold_prices")
-        .select("price_per_gram")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("silver_prices")
-        .select("price_per_gram")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-    ]);
-    
-    if (goldPriceRes.error) {
-      console.error('[API] Failed to fetch gold price:', goldPriceRes.error);
-      if (goldPriceRes.error.code === '42P01') {
-        return badRequest('Gold prices table does not exist. Please run database migrations.');
-      }
-      return serverError('Failed to fetch current gold price from database');
-    }
-    
-    if (silverPriceRes.error) {
-      console.error('[API] Failed to fetch silver price:', silverPriceRes.error);
-      if (silverPriceRes.error.code === '42P01') {
-        return badRequest('Silver prices table does not exist. Please run database migrations.');
-      }
-      return serverError('Failed to fetch current silver price from database');
-    }
-    
-    const currentGoldPrice = goldPriceRes.data?.price_per_gram;
-    const currentSilverPrice = silverPriceRes.data?.price_per_gram;
-    
-    if (!currentGoldPrice || currentGoldPrice <= 0) {
-      return badRequest('No gold price is set in the database. Please set a gold price first in the admin panel.');
-    }
-    if (!currentSilverPrice || currentSilverPrice <= 0) {
-      return badRequest('No silver price is set in the database. Please set a silver price first in the admin panel.');
-    }
-    
-    const usedMetalPrice = material_type === 'silver' ? currentSilverPrice : currentGoldPrice;
-    
     let finalPrice = directPrice;
     let isAutoCalculated = false;
     let goldPriceUsedValue: number | null = null;
 
+    if (directPrice != null) {
+      finalPrice = calculateDirectPrice(directPrice, gst_percent);
+    }
+
     if (directPrice == null) {
+      const priceTable = material_type === 'silver' ? 'silver_prices' : 'gold_prices';
+      const priceResult = await supabase
+        .from(priceTable)
+        .select("price_per_gram")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (priceResult.error) {
+        console.error(`[API] Failed to fetch ${material_type} price:`, priceResult.error);
+        if (priceResult.error.code === '42P01') {
+          return badRequest(`${material_type === 'silver' ? 'Silver' : 'Gold'} prices table does not exist. Please run database migrations.`);
+        }
+        return serverError(`Failed to fetch current ${material_type} price from database`);
+      }
+
+      const usedMetalPrice = priceResult.data?.price_per_gram;
+      if (!usedMetalPrice || usedMetalPrice <= 0) {
+        return badRequest(`No ${material_type} price is set in the database. Please set a ${material_type} price first in the admin panel.`);
+      }
+
       const makingCharge = making_charge_type === 'percent' ? making_charge_percent : making_charge_flat;
       finalPrice = calculateMetalPrice({
         metalPricePerGram: usedMetalPrice,
@@ -331,7 +312,11 @@ export async function POST(req: Request) {
         details: error.details,
         hint: error.hint,
       });
-      return serverError(error);
+      return serverError(error.message, {
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
     }
     
     return Response.json({ data }, { status: 201 });

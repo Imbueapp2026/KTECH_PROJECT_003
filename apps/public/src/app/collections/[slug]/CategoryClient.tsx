@@ -48,6 +48,12 @@ export default function CategoryPage() {
       );
     }
 
+    if (filters.occasion === "offer") {
+      filtered = filtered.filter((product) => Boolean(product.offer_id));
+    } else if (filters.occasion === "festive") {
+      filtered = filtered.filter((product) => Boolean(product.festival_id));
+    }
+
     // Apply price range filter
     if (filters.priceRange) {
       const [min, max] = filters.priceRange.split("-").map((v) => parseInt(v.replace("+", "")));

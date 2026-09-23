@@ -34,7 +34,9 @@ async function request<T>(
 
   if (!res.ok) {
     const message =
-      body && typeof body === "object" && "message" in body
+      body && typeof body === "object" && "error" in body
+        ? String((body as { error: unknown }).error)
+        : body && typeof body === "object" && "message" in body
         ? String((body as { message: unknown }).message)
         : res.statusText;
     throw new ApiError(res.status, message, body);

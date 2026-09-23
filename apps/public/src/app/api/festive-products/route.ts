@@ -1,6 +1,6 @@
 /**
  * GET /api/festive-products — Get festive/featured products for festival collection
- * Returns both festival products and offer products when festival is active
+ * Returns festival products plus products with active offers when a festival is active
  */
 import { getAnonClient } from "@/lib/supabase";
 import { serverError } from "@/lib/http";
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       return withCors(response, req, { origin: '*' });
     }
     
-    // Get products for the active festival (both festival-assigned and offer-based)
+    // The active festival collection also highlights products with active offers.
     const { data, error } = await supabase
       .from("products")
       .select(`

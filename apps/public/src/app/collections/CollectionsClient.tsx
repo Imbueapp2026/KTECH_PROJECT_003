@@ -10,14 +10,22 @@ import type { ProductJoined } from "@/types";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function CollectionsPage() {
-  const { data, isLoading } = useSWR('/api/products?sort=created_at&order=desc&limit=50', fetcher);
+  const [offersOnly] = useState(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("offers") === "active",
+  );
+  const { data, isLoading } = useSWR(
+    offersOnly ? "/api/offers?limit=50" : "/api/products?sort=created_at&order=desc&limit=50",
+    fetcher,
+  );
   const products: ProductJoined[] = data?.data || [];
   
   const [filters, setFilters] = useState<FilterState>({});
 
   const filteredProducts = useMemo(() => {
     if (!products.length) return [];
-    let filtered = [...products];
+    let filtered = offersOnly
+      ? products.filter((product) => Boolean(product.offer_id))
+      : [...products];
 
     // Apply metal type filter
     if (filters.metalType) {
@@ -32,6 +40,12 @@ export default function CollectionsPage() {
         p.category?.name.toLowerCase().includes(query) ||
         p.description?.toLowerCase().includes(query)
       );
+    }
+
+    if (filters.occasion === "offer") {
+      filtered = filtered.filter((product) => Boolean(product.offer_id));
+    } else if (filters.occasion === "festive") {
+      filtered = filtered.filter((product) => Boolean(product.festival_id));
     }
 
     // Apply price range filter
@@ -65,7 +79,12 @@ export default function CollectionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
-      <CategoryIntro category="All Collections" description="Explore our complete catalogue of handcrafted gold and silver fine jewelry pieces." />
+      <CategoryIntro
+        category={offersOnly ? "Offer Collection" : "All Collections"}
+        description={offersOnly
+          ? "Explore handcrafted jewelry currently available with special offers."
+          : "Explore our complete catalogue of handcrafted gold and silver fine jewelry pieces."}
+      />
       
       <FilterSortBar onFilterChange={setFilters} />
       

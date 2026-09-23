@@ -242,10 +242,10 @@ export function FeaturedFestivalSection() {
         {/* View All Link */}
         <div className="text-center mt-10">
           <Link
-            href="/collections"
+            href="/collections?offers=active"
             className="inline-block px-8 py-3.5 bg-gold text-white font-medium rounded hover:opacity-95 transition-all shadow-sm border-b-2 border-dusty-rose"
           >
-            View Full Collection
+            View Offer Collection
           </Link>
         </div>
       </div>

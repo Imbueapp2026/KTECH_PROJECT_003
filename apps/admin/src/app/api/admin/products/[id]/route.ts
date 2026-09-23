@@ -19,7 +19,7 @@ import {
   asString,
   asUuid,
 } from "@/lib/http";
-import { calculateMetalPrice } from "@/lib/pricing";
+import { calculateDirectPrice, calculateMetalPrice } from "@/lib/pricing";
 import type { Availability, ProductStatus } from "@/lib/data/types";
 
 const AVAILABILITY = ["available", "made_to_order", "sold"] as const;
@@ -38,7 +38,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("products")
     .select(
-      "id, name, category_id, description, hallmark_certified, availability, price, offer_id, status, image_urls, created_at, updated_at, purity_carats, weight_grams, net_weight_grams, making_charge_percent, making_charge_flat, making_charge_type, price_auto_calculated, certifications, gold_price_used, category:categories(id, name, slug, icon_svg)",
+      "id, name, category_id, description, hallmark_certified, availability, price, offer_id, status, image_urls, created_at, updated_at, purity_carats, weight_grams, net_weight_grams, making_charge_percent, making_charge_flat, making_charge_type, price_auto_calculated, certifications, gold_price_used, material_type, gst_percent, category:categories(id, name, slug, icon_svg)",
     )
     .eq("id", id)
     .single();
@@ -178,13 +178,18 @@ export async function PATCH(
     patch.making_charge_flat = v;
   }
   if (body.making_charge_type !== undefined) {
+    if (body.making_charge_type === null || body.making_charge_type === "") {
+      patch.making_charge_type = null;
+    } else {
     const v = asEnum(body.making_charge_type, MAKING_CHARGE_TYPE);
     if (!v) return badRequest("making_charge_type invalid");
     patch.making_charge_type = v;
+    }
   }
-  // price_auto_calculated is always true now
   if (body.price_auto_calculated !== undefined) {
-    // Ignore this field - it's always true
+    const v = asBool(body.price_auto_calculated);
+    if (v === null) return badRequest("price_auto_calculated must be boolean");
+    patch.price_auto_calculated = v;
   }
   if (body.certifications !== undefined) {
     patch.certifications = body.certifications
@@ -229,46 +234,36 @@ export async function PATCH(
   const makingPercent = patch.making_charge_percent ?? currentProduct.making_charge_percent;
   const makingFlat = patch.making_charge_flat ?? currentProduct.making_charge_flat;
   const gstPercent = patch.gst_percent ?? currentProduct.gst_percent ?? 5;
+
+  if (directPrice != null) {
+    patch.price = calculateDirectPrice(directPrice, gstPercent);
+  }
   
-  // Fetch current gold and silver prices from database concurrently
-  const [goldPriceRes, silverPriceRes] = await Promise.all([
-    supabase
-      .from("gold_prices")
+  const shouldRecalculate = directPrice == null && currentProduct.price_auto_calculated !== false;
+  let usedMetalPrice: number | null = null;
+
+  if (shouldRecalculate) {
+    const priceTable = materialType === 'silver' ? 'silver_prices' : 'gold_prices';
+    const priceResult = await supabase
+      .from(priceTable)
       .select("price_per_gram")
       .order("updated_at", { ascending: false })
       .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("silver_prices")
-      .select("price_per_gram")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-  ]);
-  
-  if (goldPriceRes.error) {
-    console.error('[API] Failed to fetch gold price for update:', goldPriceRes.error);
-    if (goldPriceRes.error.code === '42P01') {
-      return badRequest('Gold prices table does not exist. Please run database migrations.');
+      .maybeSingle();
+
+    if (priceResult.error) {
+      console.error(`[API] Failed to fetch ${materialType} price for update:`, priceResult.error);
+      if (priceResult.error.code === '42P01') {
+        return badRequest(`${materialType === 'silver' ? 'Silver' : 'Gold'} prices table does not exist. Please run database migrations.`);
+      }
+      return serverError(`Failed to fetch current ${materialType} price from database`);
     }
-    return serverError('Failed to fetch current gold price from database');
+
+    usedMetalPrice = priceResult.data?.price_per_gram ?? null;
   }
-  
-  if (silverPriceRes.error) {
-    console.error('[API] Failed to fetch silver price for update:', silverPriceRes.error);
-    if (silverPriceRes.error.code === '42P01') {
-      return badRequest('Silver prices table does not exist. Please run database migrations.');
-    }
-    return serverError('Failed to fetch current silver price from database');
-  }
-  
-  const currentGoldPrice = goldPriceRes.data?.price_per_gram;
-  const currentSilverPrice = silverPriceRes.data?.price_per_gram;
-  
-  const usedMetalPrice = materialType === 'silver' ? currentSilverPrice : currentGoldPrice;
-  
-  // Only recalculate if all required fields are present
-  if (directPrice == null && currentProduct.price_auto_calculated !== false && weight && makingType && usedMetalPrice) {
+
+  // Only recalculate automatic products when all required fields are present.
+  if (shouldRecalculate && weight && makingType && usedMetalPrice) {
     const makingCharge = makingType === 'percent' ? makingPercent : makingFlat;
     
     // Validate required fields

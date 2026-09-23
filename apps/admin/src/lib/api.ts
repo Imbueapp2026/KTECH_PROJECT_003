@@ -85,15 +85,6 @@ async function request<T>(
       }
     }
 
-    // ADDED — temporary debug log so we can see the real backend error.
-    // Remove this once the 500 is diagnosed and fixed.
-    console.error("[DEBUG products 500]", {
-      path,
-      status: res.status,
-      message,
-      body,
-    });
-
     if (res.status === 401) {
       // Token is invalid/expired — redirect to login only if we had a token
       // If we never had a token, don't redirect - just throw the error
@@ -102,7 +93,11 @@ async function request<T>(
       }
       throw new ApiError(401, "Session expired. Please sign in again.", body);
     }
-    throw new ApiError(res.status, message, body);
+    throw new ApiError(
+      res.status,
+      message || `Request failed (${res.status}) for ${path}`,
+      body,
+    );
   }
   return responseData as T;
 }
