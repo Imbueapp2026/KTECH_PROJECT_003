@@ -1,6 +1,7 @@
 /**
  * GET /api/banner — public endpoint for banner content
  * Returns a mix of latest products, featured categories, and limited products
+ * Fetches data directly from admin-managed tables for real-time updates
  */
 import { getAnonClient } from "@/lib/supabase";
 import { serverError } from "@/lib/http";
@@ -15,30 +16,31 @@ export async function GET(req: Request) {
     const supabase = getAnonClient();
     const items: Array<Record<string, unknown>> = [];
 
-    // Get latest products (top 3)
-    const { data: latestProducts } = await supabase
+    // Get limited products from admin-managed banner_priority (top 2)
+    const { data: limitedProducts } = await supabase
       .from("products")
       .select("id, name, image_urls, price, category_id")
       .eq("status", "published")
+      .eq("is_limited", true)
       .neq("availability", "sold")
-      .order("created_at", { ascending: false })
-      .limit(3);
+      .order("banner_priority", { ascending: false })
+      .limit(2);
 
-    if (latestProducts) {
-      latestProducts.forEach((product) => {
+    if (limitedProducts) {
+      limitedProducts.forEach((product) => {
         items.push({
           id: product.id,
           type: "product",
           title: product.name,
           imageUrl: product.image_urls?.[0] || null,
           linkUrl: `/products/${product.id}`,
-          badge: "New",
+          badge: "Limited",
           data: product
         });
       });
     }
 
-    // Get featured categories (top 2)
+    // Get featured categories from admin-managed banner_priority (top 2)
     const { data: featuredCategories } = await supabase
       .from("categories")
       .select("id, name, slug, icon_svg")
@@ -60,25 +62,24 @@ export async function GET(req: Request) {
       });
     }
 
-    // Get limited products (top 2)
-    const { data: limitedProducts } = await supabase
+    // Get latest products (top 3)
+    const { data: latestProducts } = await supabase
       .from("products")
       .select("id, name, image_urls, price, category_id")
       .eq("status", "published")
-      .eq("is_limited", true)
       .neq("availability", "sold")
-      .order("banner_priority", { ascending: false })
-      .limit(2);
+      .order("created_at", { ascending: false })
+      .limit(3);
 
-    if (limitedProducts) {
-      limitedProducts.forEach((product) => {
+    if (latestProducts) {
+      latestProducts.forEach((product) => {
         items.push({
           id: product.id,
           type: "product",
           title: product.name,
           imageUrl: product.image_urls?.[0] || null,
           linkUrl: `/products/${product.id}`,
-          badge: "Limited",
+          badge: "New",
           data: product
         });
       });
