@@ -90,7 +90,7 @@ export function Header() {
                   isSolidStyle ? "text-charcoal" : "text-white"
                 }`}
               >
-                Categories
+                Most Shopped Categories
                 <svg className="w-4 h-4 transition-transform duration-200" style={{ transform: isCategoriesOpen ? "rotate(180deg)" : "rotate(0deg)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -207,7 +207,7 @@ export function Header() {
             </Link>
             
             <div className="py-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-charcoal/60 mb-2">Categories</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-charcoal/60 mb-2">Most Shopped Categories</p>
               <div className="pl-3 space-y-2 border-l-2 border-gold/30">
                 {categories.map((category) => (
                   <Link

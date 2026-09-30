@@ -8,17 +8,19 @@ export const metadata = {
   description: "Exquisite handcrafted gold and diamond jewelry for those who know exactly what they're looking at.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function Home() {
   return (
     <div className="min-h-screen">
       {/* 1. Hero - Instant SSR */}
       <Hero />
       
-      {/* 2. New Arrivals & Category Bento Grid */}
-      <HomeProductsSection />
-      
-      {/* 3. Featured Festival section */}
+      {/* 2. Featured Festival and Offers section */}
       <FeaturedFestivalSection />
+      
+      {/* 3. New Arrivals & Category Bento Grid */}
+      <HomeProductsSection />
       
       {/* 4. TrustSection - Certified Purity */}
       <TrustSection />

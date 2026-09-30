@@ -5,6 +5,9 @@
 import { getAnonClient } from "@/lib/supabase";
 import { notFound, serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
+import { isOfferCurrentlyActive } from "@/lib/offers";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   req: Request,
@@ -65,7 +68,11 @@ export async function GET(
     // Transform response to match expected type
     const offerRaw = Array.isArray(data.offers) && data.offers.length > 0 ? (data.offers[0] as Record<string, unknown>) : null;
     let offer = null;
-    if (offerRaw) {
+    if (offerRaw && isOfferCurrentlyActive({
+      is_active: offerRaw.is_active === true,
+      start_date: typeof offerRaw.start_date === "string" ? offerRaw.start_date : null,
+      end_date: typeof offerRaw.end_date === "string" ? offerRaw.end_date : null,
+    })) {
       const { discounts, ...restOffer } = offerRaw;
       offer = {
         ...restOffer,
@@ -73,7 +80,9 @@ export async function GET(
       };
     }
 
-    const { categories: _categories, offers: _offers, ...restData } = data as Record<string, unknown>;
+    const restData = { ...(data as Record<string, unknown>) };
+    delete restData.categories;
+    delete restData.offers;
 
     const transformedData = {
       ...restData,
@@ -82,7 +91,7 @@ export async function GET(
     };
 
     const response = Response.json({ data: transformedData }, {
-      headers: { 'Cache-Control': 'no-store' }
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
     });
     return withCors(response, req, { origin: '*' });
   } catch (err) {

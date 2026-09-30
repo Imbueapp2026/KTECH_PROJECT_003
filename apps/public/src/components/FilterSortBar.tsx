@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 interface FilterSortBarProps {
   onFilterChange: (filters: FilterState) => void;
+  initialPriceRange?: string;
 }
 
 export interface FilterState {
@@ -14,11 +15,11 @@ export interface FilterState {
   searchQuery?: string;
 }
 
-export function FilterSortBar({ onFilterChange }: FilterSortBarProps) {
+export function FilterSortBar({ onFilterChange, initialPriceRange = "" }: FilterSortBarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     metalType: "",
-    priceRange: "",
+    priceRange: initialPriceRange,
     occasion: "",
     sortBy: "newest",
     searchQuery: "",

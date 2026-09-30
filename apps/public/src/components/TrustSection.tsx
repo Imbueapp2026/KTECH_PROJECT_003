@@ -39,16 +39,16 @@ export function TrustSection() {
   ];
 
   return (
-    <section className="py-16 bg-white">
+    <section className="bg-white py-10 sm:py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-serif text-charcoal mb-4">Nothing Hidden in the Price</h2>
+        <div className="mb-8 text-center sm:mb-10">
+          <h2 className="mb-3 text-2xl font-serif text-charcoal sm:text-3xl">Nothing Hidden in the Price</h2>
           <p className="text-charcoal/70 max-w-2xl mx-auto">
             We believe in complete transparency. Every piece comes with full documentation and clear pricing.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {trustItems.map((item, index) => (
             <div key={index} className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-50 rounded-full mb-4 text-gold border-2 border-dusty-rose/30">

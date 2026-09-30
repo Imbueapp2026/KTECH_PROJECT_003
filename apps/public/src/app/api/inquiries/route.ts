@@ -68,7 +68,9 @@ export async function POST(req: Request) {
       result.error.message?.includes("size") ||
       result.error.message?.includes("additional_notes")
     )) {
-      const { size: _size, additional_notes: _additionalNotes, ...legacyInquiry } = inquiry;
+      const legacyInquiry = { ...inquiry } as Record<string, unknown>;
+      delete legacyInquiry.size;
+      delete legacyInquiry.additional_notes;
       result = await supabase
         .from("inquiries")
         .insert(legacyInquiry);

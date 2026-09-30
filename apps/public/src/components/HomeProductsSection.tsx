@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { NewArrivalsStrip } from "./NewArrivalsStrip";
 import { BentoCategoryGrid } from "./BentoCategoryGrid";
+import { ShopByPrice } from "./ShopByPrice";
 import type { ProductJoined } from "@/types";
 
 export function HomeProductsSection() {
@@ -13,7 +14,9 @@ export function HomeProductsSection() {
     let isMounted = true;
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/products?sort=created_at&order=desc&limit=30');
+        const response = await fetch('/api/products?sort=created_at&order=desc&limit=100', {
+          cache: "no-store",
+        });
         if (response.ok) {
           const result = await response.json();
           if (isMounted && result.data) {
@@ -62,6 +65,9 @@ export function HomeProductsSection() {
       
       {/* Bento Category Grid */}
       <BentoCategoryGrid products={products} />
+
+      {/* Independent price-band discovery */}
+      <ShopByPrice />
     </>
   );
 }

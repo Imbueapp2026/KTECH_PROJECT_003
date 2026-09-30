@@ -2,8 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['cclsnzoixxmrbldveyam.supabase.co'],
-    unoptimized: true, // Disable optimization to avoid private IP resolution issues
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cclsnzoixxmrbldveyam.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
+    unoptimized: true,
   },
   experimental: {
     optimizePackageImports: ["lucide-react"],

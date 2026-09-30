@@ -60,6 +60,7 @@ export interface Product {
   availability: Availability;
   price: number;
   offer_id: string | null;
+  is_new?: boolean;
   status: ProductStatus;
   image_urls: string[];
   created_at: string;

@@ -73,6 +73,15 @@ textarea {
   font-size: 16px;
 }
 
+.swipe-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.swipe-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 @supports (padding: max(0px)) {
   body {
     padding-left: max(0px, env(safe-area-inset-left));
@@ -146,6 +155,17 @@ textarea {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes offerSlideIn {
+  from {
+    opacity: 0.45;
+    transform: translateX(18px) scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
   }
 }
 

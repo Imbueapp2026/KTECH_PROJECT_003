@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import useSWR from "swr";
+import { useSearchParams } from "next/navigation";
 import { CategoryIntro } from "@/components/CategoryIntro";
 import { FilterSortBar, FilterState } from "@/components/FilterSortBar";
 import { ProductCard } from "@/components/ProductCard";
@@ -10,22 +11,39 @@ import type { ProductJoined } from "@/types";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function CollectionsPage() {
-  const [offersOnly] = useState(() =>
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("offers") === "active",
-  );
+  const searchParams = useSearchParams();
+  const offersOnly = searchParams.get("offers") === "active";
+  const selectedOfferId = searchParams.get("offer_id");
+  const minPrice = searchParams.get("minPrice");
+  const maxPrice = searchParams.get("maxPrice");
+  const priceQuery = `${minPrice ? `&minPrice=${encodeURIComponent(minPrice)}` : ""}${maxPrice ? `&maxPrice=${encodeURIComponent(maxPrice)}` : ""}`;
+
   const { data, isLoading } = useSWR(
-    offersOnly ? "/api/offers?limit=50" : "/api/products?sort=created_at&order=desc&limit=50",
+    offersOnly
+      ? `/api/products?sort=created_at&order=desc&limit=50${selectedOfferId ? `&offer_id=${encodeURIComponent(selectedOfferId)}` : ""}${priceQuery}`
+      : `/api/products?sort=created_at&order=desc&limit=50${priceQuery}`,
     fetcher,
   );
-  const products: ProductJoined[] = data?.data || [];
+  const products: ProductJoined[] = useMemo(() => data?.data || [], [data?.data]);
   
   const [filters, setFilters] = useState<FilterState>({});
 
   const filteredProducts = useMemo(() => {
     if (!products.length) return [];
     let filtered = offersOnly
-      ? products.filter((product) => Boolean(product.offer_id))
+      ? products.filter((product) => Boolean(product.offer_id) && Boolean(product.offer?.is_active))
       : [...products];
+
+    if (offersOnly && selectedOfferId) {
+      filtered = filtered.filter((product) => product.offer_id === selectedOfferId);
+    }
+
+    if (minPrice && Number.isFinite(Number(minPrice))) {
+      filtered = filtered.filter((product) => product.price >= Number(minPrice));
+    }
+    if (maxPrice && Number.isFinite(Number(maxPrice))) {
+      filtered = filtered.filter((product) => product.price < Number(maxPrice));
+    }
 
     // Apply metal type filter
     if (filters.metalType) {
@@ -75,18 +93,26 @@ export default function CollectionsPage() {
     }
 
     return filtered;
-  }, [products, filters]);
+  }, [products, filters, offersOnly, selectedOfferId, minPrice, maxPrice]);
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       <CategoryIntro
-        category={offersOnly ? "Offer Collection" : "All Collections"}
+        category={offersOnly ? "Offer Collection" : minPrice || maxPrice ? "Shop By Price" : "All Collections"}
         description={offersOnly
           ? "Explore handcrafted jewelry currently available with special offers."
           : "Explore our complete catalogue of handcrafted gold and silver fine jewelry pieces."}
       />
       
-      <FilterSortBar onFilterChange={setFilters} />
+      <FilterSortBar onFilterChange={setFilters} initialPriceRange={minPrice && maxPrice ? `${minPrice}-${maxPrice}` : undefined} />
+
+      {(minPrice || maxPrice) && (
+        <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
+          <span className="inline-flex rounded-full border border-[#C9A66B] bg-[#C9A66B]/10 px-3 py-1 text-sm text-[#6B6560]">
+            Price: {minPrice ? `₹${Number(minPrice).toLocaleString("en-IN")}` : "Any"} – {maxPrice ? `₹${Number(maxPrice).toLocaleString("en-IN")}` : "Above"}
+          </span>
+        </div>
+      )}
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isLoading ? (

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 export interface BannerItem {
@@ -56,11 +57,12 @@ export function Banner({ items, columns = 3, aspectRatio = "16/9", className = "
                 style={{ aspectRatio }}
               >
                 {item.imageUrl && !hasImageError ? (
-                  <img
+                  <Image
                     src={item.imageUrl}
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    crossOrigin="anonymous"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={() => handleImageError(item.id)}
                   />
                 ) : (

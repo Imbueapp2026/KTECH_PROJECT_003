@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   const { data, error, count } = await supabase
     .from("offers")
     .select(
-      "id, label, description, is_active, start_date, end_date, created_at, discounts(id, discount_type, value)",
+      "id, label, description, is_active, start_date, end_date, applied_to_all, created_at, discounts(id, discount_type, value), offer_banners(id, product_id, image_url, alt_text, is_active, display_order)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -40,6 +40,7 @@ export async function POST(req: Request) {
       is_active?: unknown;
       start_date?: unknown;
       end_date?: unknown;
+      applied_to_all?: unknown;
     }>(req)) ?? {};
   const label = asString(body.label, 200);
   const description =
@@ -47,12 +48,13 @@ export async function POST(req: Request) {
   const is_active = asBool(body.is_active) ?? true;
   const start_date = body.start_date == null ? null : asString(body.start_date, 10);
   const end_date = body.end_date == null ? null : asString(body.end_date, 10);
+  const applied_to_all = asBool(body.applied_to_all) ?? false;
   if (!label) return badRequest("label is required");
 
   const supabase = getServiceClient();
   const { data, error } = await supabase
     .from("offers")
-    .insert({ label, description, is_active, start_date, end_date })
+    .insert({ label, description, is_active, start_date, end_date, applied_to_all })
     .select()
     .single();
   if (error) return serverError(error);

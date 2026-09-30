@@ -14,12 +14,22 @@ export default function NewOfferPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    label: string;
+    description: string;
+    is_active: boolean;
+    start_date: string;
+    end_date: string;
+    applied_to_all: boolean;
+    discount_type: DiscountType;
+    discount_value: string;
+  }>({
     label: "",
     description: "",
     is_active: true,
     start_date: "",
     end_date: "",
+    applied_to_all: false,
     discount_type: "percentage" as DiscountType,
     discount_value: "",
   });
@@ -112,6 +122,22 @@ export default function NewOfferPage() {
             Active
           </label>
         </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="applied_to_all"
+            checked={formData.applied_to_all}
+            onChange={(e) => setFormData({ ...formData, applied_to_all: e.target.checked })}
+            className="w-4 h-4 rounded border-[var(--color-tertiary-soft)] text-[var(--color-quaternary)] focus:ring-[var(--color-quaternary)]"
+          />
+          <label htmlFor="applied_to_all" className="text-sm text-[var(--color-ink)]">
+            Apply to All Products
+          </label>
+        </div>
+        <p className="text-xs text-[var(--color-tertiary)] ml-7">
+          When enabled, this offer will apply to all products automatically. Products will show the offer badge but display the original price (no discount calculation).
+        </p>
 
         <Input
           label="Start Date"

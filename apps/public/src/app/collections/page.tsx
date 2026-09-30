@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import CollectionsClient from './CollectionsClient';
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function CollectionsPage() {
-  return <CollectionsClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 pt-20" />}>
+      <CollectionsClient />
+    </Suspense>
+  );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { formatPrice, formatWeight } from "@/lib/utils";
 import { InquiryCTA } from "@/components/InquiryCTA";
 import { ProductCard } from "@/components/ProductCard";
@@ -50,14 +51,13 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
             {/* Image Section */}
             <div className="aspect-square relative bg-gray-100 rounded-lg overflow-hidden">
               {imageUrl ? (
-                <img
+                <Image
                   src={imageUrl}
                   alt={product.name}
-                  className="w-full h-full object-cover"
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover"
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">

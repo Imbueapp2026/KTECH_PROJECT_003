@@ -57,7 +57,9 @@ async function getProduct(id: string): Promise<ProductJoined | null> {
     };
   }
 
-  const { categories: _categories, offers: _offers, ...restData } = data as Record<string, unknown>;
+  const restData = { ...(data as Record<string, unknown>) };
+  delete restData.categories;
+  delete restData.offers;
 
   return {
     ...restData,
@@ -115,7 +117,9 @@ async function getRelatedProducts(categoryId: string, currentProductId: string):
         discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
       };
     }
-    const { categories: _categories, offers: _offers, ...restData } = p as Record<string, unknown>;
+    const restData = { ...(p as Record<string, unknown>) };
+    delete restData.categories;
+    delete restData.offers;
     return {
       ...restData,
       category: category || null,

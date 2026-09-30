@@ -119,3 +119,24 @@ export function FestivalIcon({ className = "" }: { className?: string }) {
     </svg>
   );
 }
+
+export function OccasionIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7v5l3.5 2" />
+      <path d="M5.5 5.5 4 4m14.5 1.5L20 4" />
+    </svg>
+  );
+}

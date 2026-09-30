@@ -1,9 +1,10 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ProductGrid, ProductGridSkeleton } from "@/components/products/ProductGrid";
+import { ProductGrid } from "@/components/products/ProductGrid";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import type {
@@ -14,6 +15,13 @@ import type {
   Product,
   Festival,
 } from "@/lib/data/types";
+
+type BannerDraft = {
+  image_url: string;
+  alt_text: string;
+  is_active: boolean;
+  display_order: number;
+};
 
 function formatDiscount(d: Discount | undefined): string {
   if (!d) return "—";
@@ -28,6 +36,7 @@ export default function OffersPage() {
   const [products, setProducts] = useState<ProductJoined[] | null>(null);
   const [activeFestival, setActiveFestival] = useState<Festival | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deletingOfferId, setDeletingOfferId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +102,59 @@ export default function OffersPage() {
       window.location.reload();
     } catch (err) {
       push(err instanceof ApiError ? err.message : "Failed to add products to festival.", "danger");
+    }
+  }
+
+  async function uploadBannerImage(offerId: string, file: File) {
+    const formData = new FormData();
+    formData.append("files", file);
+    const token = await (await import("@/lib/auth/get-token")).getIdToken().catch(() => null);
+    const response = await fetch("/api/admin/products/upload", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok || !result.urls?.[0]) throw new Error(result.error ?? "Banner image upload failed.");
+    setOffers((current) => current?.map((offer) => offer.id === offerId
+      ? { ...offer, offer_banners: [{ ...(offer.offer_banners?.[0] ?? {}), image_url: result.urls[0] } as never] }
+      : offer) ?? null);
+  }
+
+  async function saveBanner(offer: OfferWithDiscounts, draft: BannerDraft) {
+    try {
+      const response = await api.put<{ data: OfferWithDiscounts["offer_banners"][number] }>(`/api/admin/offers/${offer.id}/banner`, draft);
+      setOffers((current) => current?.map((item) => item.id === offer.id ? { ...item, offer_banners: [response.data] } : item) ?? null);
+      push("Offer banner saved.", "success");
+    } catch (err) {
+      push(err instanceof ApiError ? err.message : "Failed to save offer banner.", "danger");
+    }
+  }
+
+  async function deleteBanner(offerId: string) {
+    try {
+      await api.delete(`/api/admin/offers/${offerId}/banner`);
+      setOffers((current) => current?.map((offer) => offer.id === offerId ? { ...offer, offer_banners: [] } : offer) ?? null);
+      push("Offer banner removed.", "success");
+    } catch (err) {
+      push(err instanceof ApiError ? err.message : "Failed to remove offer banner.", "danger");
+    }
+  }
+
+  async function deleteOffer(offer: OfferWithDiscounts) {
+    if (!window.confirm(`Remove ${offer.label}? Its products will remain available without this offer.`)) return;
+    setDeletingOfferId(offer.id);
+    try {
+      await api.delete(`/api/admin/offers/${offer.id}`);
+      setOffers((current) => current?.filter((item) => item.id !== offer.id) ?? null);
+      setProducts((current) => current?.map((product) => product.offer_id === offer.id
+        ? { ...product, offer_id: null, offer: null }
+        : product) ?? null);
+      push("Offer removed.", "success");
+    } catch (err) {
+      push(err instanceof ApiError ? err.message : "Failed to remove offer.", "danger");
+    } finally {
+      setDeletingOfferId(null);
     }
   }
 
@@ -179,13 +241,16 @@ export default function OffersPage() {
                 <Badge tone={o.is_active ? "success" : "neutral"}>
                   {o.is_active ? "Active" : "Inactive"}
                 </Badge>
+                {o.applied_to_all && (
+                  <Badge tone="info">Applied to All</Badge>
+                )}
                 <Badge tone="gold">{formatDiscount(d)}</Badge>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-[var(--color-tertiary)]">
-                  {inOffer.length} {inOffer.length === 1 ? "product" : "products"}
+                  {o.applied_to_all ? "All products" : `${inOffer.length} ${inOffer.length === 1 ? "product" : "products"}`}
                 </span>
-                {activeFestival && o.is_active && (
+                {activeFestival && o.is_active && !o.applied_to_all && (
                   <Button
                     size="sm"
                     onClick={() => addAllOfferProductsToFestival(o.id)}
@@ -193,6 +258,14 @@ export default function OffersPage() {
                     Add All to Festival
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={deletingOfferId === o.id}
+                  onClick={() => void deleteOffer(o)}
+                >
+                  {deletingOfferId === o.id ? "Removing..." : "Remove offer"}
+                </Button>
               </div>
             </header>
             {o.description && (
@@ -200,30 +273,167 @@ export default function OffersPage() {
                 {o.description}
               </p>
             )}
-            <div className="p-5">
-              <ProductGrid
-                products={inOffer}
-                hrefBase={(pid) => `/products/${pid}`}
-                emptyTitle="No products in this offer"
-                emptyDescription="Attach products to this offer to see them here."
-              />
-              {activeFestival && o.is_active && inOffer.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-[var(--color-tertiary-soft)] flex items-center justify-between">
-                  <p className="text-sm text-[var(--color-tertiary)]">
-                    {inOffer.filter(p => !p.festival_id).length} products can be added to {activeFestival.name}
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => addAllOfferProductsToFestival(o.id)}
-                  >
-                    Add All to Festival
-                  </Button>
-                </div>
-              )}
-            </div>
+            <OfferBannerEditor
+              key={`${o.id}-${o.offer_banners?.[0]?.id ?? 'nobanner'}-${o.offer_banners?.[0]?.image_url ?? ''}`}
+              offer={o}
+              onUpload={uploadBannerImage}
+              onSave={saveBanner}
+              onDelete={deleteBanner}
+            />
+            {!o.applied_to_all && (
+              <div className="p-5">
+                <ProductGrid
+                  products={inOffer}
+                  hrefBase={(pid) => `/products/${pid}`}
+                  emptyTitle="No products in this offer"
+                  emptyDescription="Attach products to this offer to see them here."
+                />
+                {activeFestival && o.is_active && inOffer.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-[var(--color-tertiary-soft)] flex items-center justify-between">
+                    <p className="text-sm text-[var(--color-tertiary)]">
+                      {inOffer.filter(p => !p.festival_id).length} products can be added to {activeFestival.name}
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => addAllOfferProductsToFestival(o.id)}
+                    >
+                      Add All to Festival
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+            {o.applied_to_all && (
+              <div className="p-5 text-sm text-[var(--color-tertiary)]">
+                This offer applies to all products automatically. No individual product assignment needed.
+              </div>
+            )}
           </section>
         );
       })}
+    </div>
+  );
+}
+
+function OfferBannerEditor({
+  offer,
+  onUpload,
+  onSave,
+  onDelete,
+}: {
+  offer: OfferWithDiscounts;
+  onUpload: (offerId: string, file: File) => Promise<void>;
+  onSave: (offer: OfferWithDiscounts, draft: BannerDraft) => Promise<void>;
+  onDelete: (offerId: string) => Promise<void>;
+}) {
+  const banner = offer.offer_banners?.[0];
+  const [draft, setDraft] = useState<BannerDraft>({
+    image_url: banner?.image_url ?? "",
+    alt_text: banner?.alt_text ?? `${offer.label} offer`,
+    is_active: banner?.is_active ?? true,
+    display_order: banner?.display_order ?? 0,
+  });
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      await onUpload(offer.id, file);
+      setDraft((current) => ({ ...current, image_url: "pending" }));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="border-b border-[var(--color-tertiary-soft)] bg-[var(--color-surface-muted)]/30 px-4 py-5 sm:px-5">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.1em] font-semibold text-[var(--color-quaternary)]">
+            Current offers banner
+          </p>
+          <h3 className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
+            Promote this offer
+          </h3>
+          <p className="mt-1 text-xs text-[var(--color-tertiary)]">
+            Visitors will be sent to the selected product when they tap the banner.
+          </p>
+        </div>
+        {banner && (
+          <Button size="sm" variant="ghost" onClick={() => onDelete(offer.id)}>
+            Remove
+          </Button>
+        )}
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:items-start">
+        <div className="relative aspect-[16/7] min-h-[150px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-tertiary-soft)] bg-[var(--color-surface-sunken)]">
+          {draft.image_url && draft.image_url !== "pending" ? (
+            <Image
+              src={draft.image_url}
+              alt="Current offer banner preview"
+              fill
+              unoptimized
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center px-6 text-center text-xs text-[var(--color-tertiary)]">
+              Choose an image to preview the banner here.
+            </div>
+          )}
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-xs font-medium text-white">
+              Uploading image...
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--color-ink-soft)]">
+              Alt text
+            </span>
+            <input
+              value={draft.alt_text}
+              onChange={(e) => setDraft({ ...draft, alt_text: e.target.value })}
+              maxLength={200}
+              placeholder="Describe the offer banner"
+              className="h-10 w-full rounded-[var(--radius-sm)] border border-[var(--color-tertiary-soft)] bg-[var(--color-primary)] px-3 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-tertiary)] focus:border-[var(--color-quaternary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-quaternary)]/20"
+            />
+          </label>
+
+          <label className="flex cursor-pointer items-center justify-center rounded-[var(--radius-sm)] border border-dashed border-[var(--color-quaternary)]/60 px-4 py-2.5 text-sm font-medium text-[var(--color-quaternary)] transition-colors hover:bg-[var(--color-quaternary-soft)]">
+            {uploading ? "Uploading..." : draft.image_url ? "Replace banner image" : "Choose banner image"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="sr-only"
+              disabled={uploading}
+              onChange={(e) => void handleFile(e.target.files?.[0])}
+            />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+            <input
+              type="checkbox"
+              checked={draft.is_active}
+              onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })}
+              className="h-4 w-4 rounded border-[var(--color-tertiary-soft)] text-[var(--color-quaternary)] focus:ring-[var(--color-quaternary)]"
+            />
+            Show in Current Offers
+          </label>
+
+          <Button
+            className="w-full"
+            disabled={!draft.image_url || draft.image_url === "pending" || !draft.alt_text || uploading}
+            onClick={() => void onSave(offer, draft)}
+          >
+            Save banner
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

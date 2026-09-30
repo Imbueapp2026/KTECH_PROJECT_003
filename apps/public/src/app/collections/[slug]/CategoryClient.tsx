@@ -25,7 +25,7 @@ export default function CategoryPage() {
     fetcher
   );
   
-  const categoryProducts: ProductJoined[] = productsResult?.data || [];
+  const categoryProducts: ProductJoined[] = useMemo(() => productsResult?.data || [], [productsResult?.data]);
   
   const [filters, setFilters] = useState<FilterState>({});
 

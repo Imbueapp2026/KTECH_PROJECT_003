@@ -10,25 +10,15 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  default: ({ fill: _fill, priority: _priority, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; priority?: boolean }) => (
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    <img {...props} />
+  ),
 }));
 
 const emptyProductsResponse = {
   data: [],
-};
-
-const offerProductResponse = {
-  data: [
-    {
-      id: "product-1",
-      name: "Gold Ring",
-      price: 50000,
-      image_urls: [],
-      category: { id: "category-1", name: "Rings", slug: "rings" },
-      hallmark_certified: false,
-      offer: { id: "offer-1", label: "Diwali Offer", is_active: true },
-    },
-  ],
 };
 
 describe("FeaturedFestivalSection", () => {
@@ -56,22 +46,48 @@ describe("FeaturedFestivalSection", () => {
     expect(screen.getByText("Current Offers")).toBeInTheDocument();
   });
 
-  it("shows the promotional copy and offer status on an offer card", async () => {
+  it("shows the current offers carousel copy and links to the offer collection", async () => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ data: null }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => offerProductResponse }));
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        data: [{
+          id: "banner-1",
+          image_url: "https://example.com/banner.jpg",
+          alt_text: "Diwali deal",
+          offer_id: "offer-1",
+        }],
+      }) }));
 
     render(<FeaturedFestivalSection />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(screen.getByText("Explore our exclusive collection with special discounts")).toBeInTheDocument();
-    expect(screen.getByText("Offer available")).toBeInTheDocument();
-    expect(screen.getByText("Gold Ring")).toBeInTheDocument();
+    expect(screen.getByText("Explore exclusive pieces with special pricing")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /shop offer/i })).toHaveAttribute("href", "/collections?offers=active&offer_id=offer-1");
   });
 
-  it("shows a retry state when the offers API fails", async () => {
+  it("routes the active banner to the selected offer collection", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: null }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        data: [{
+          id: "banner-1",
+          image_url: "https://example.com/banner.jpg",
+          alt_text: "Diwali deal",
+          offer_id: "offer-1",
+        }],
+      }) }));
+
+    render(<FeaturedFestivalSection />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(screen.getByRole("link", { name: /shop offer/i })).toHaveAttribute("href", "/collections?offers=active&offer_id=offer-1");
+  });
+
+  it("shows the fallback CTA when the offers API fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
 
     render(<FeaturedFestivalSection />);
@@ -80,6 +96,6 @@ describe("FeaturedFestivalSection", () => {
     });
 
     expect(screen.getByText(/we couldn't load our offers right now/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /shop offer/i })).toHaveAttribute("href", "/collections?offers=active");
   });
 });
